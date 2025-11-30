@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from 'react';
+import { expenseAPI } from '../lib/api';
 
 export default function ExpenseCard({ expense, index, onDelete }) {
   const [isDeleting, setIsDeleting] = useState(false);
@@ -12,18 +13,11 @@ export default function ExpenseCard({ expense, index, onDelete }) {
 
     setIsDeleting(true);
     try {
-      const response = await fetch(`/api/${expense._id}`, {
-        method: 'DELETE',
-      });
-
-      if (response.ok) {
-        onDelete(expense._id);
-      } else {
-        console.error('Failed to delete expense');
-        setIsDeleting(false);
-      }
+      await expenseAPI.delete(expense._id);
+      onDelete(expense._id);
     } catch (error) {
       console.error('Error deleting expense:', error);
+      alert('Failed to delete expense. Please try again.');
       setIsDeleting(false);
     }
   };

@@ -2,23 +2,27 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import ExpenseCard from "../components/ExpenseCard";
+import ProtectedRoute from "../components/ProtectedRoute";
+import { expenseAPI } from "../lib/api";
 
-export default function Expenses() {
+function ExpensesContent() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
 
   useEffect(() => {
-    fetch("/api/expenses")
-      .then((res) => res.json())
-      .then((expenses) => {
+    const fetchExpenses = async () => {
+      try {
+        const expenses = await expenseAPI.getAll();
         setData(expenses);
-        setLoading(false);
-      })
-      .catch((error) => {
+      } catch (error) {
         console.error('Error fetching expenses:', error);
+      } finally {
         setLoading(false);
-      });
+      }
+    };
+
+    fetchExpenses();
   }, []);
 
   const categories = ['all', ...new Set(data.map(exp => exp.category).filter(Boolean))];
@@ -118,5 +122,13 @@ export default function Expenses() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function Expenses() {
+  return (
+    <ProtectedRoute>
+      <ExpensesContent />
+    </ProtectedRoute>
   );
 }

@@ -2,46 +2,156 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 
 export default function Navbar() {
   const pathname = usePathname();
+  const { user, logout, isAuthenticated } = useAuth();
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
-  const navItems = [
+  const publicNavItems = [
     { href: '/', label: 'Home', icon: '🏠' },
-    { href: '/dashboard', label: 'Dashboard', icon: '📊' },
-    { href: '/expenses', label: 'Expenses', icon: '💳' },
-    { href: '/expenses/new', label: 'Add Expense', icon: '➕' },
   ];
 
+  const privateNavItems = [
+    { href: '/dashboard', label: 'Dashboard', icon: '📊' },
+    { href: '/expenses', label: 'Expenses', icon: '💳' },
+  ];
+
+  const navItems = isAuthenticated ? privateNavItems : publicNavItems;
+
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200/60 shadow-sm">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-gray-200/50 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link 
             href="/" 
-            className="flex items-center space-x-2 font-bold text-xl text-gradient hover:scale-105 transition-transform duration-200"
+            className="flex items-center space-x-3 hover:scale-105 transition-transform duration-200 group"
           >
-            <span className="text-2xl">💰</span>
-            <span>FinTrackr</span>
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
+              <span className="text-white text-lg font-bold">F</span>
+            </div>
+            <span className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">FinTrackr</span>
           </Link>
 
           {/* Navigation Links */}
-          <div className="hidden md:flex space-x-1">
+          <div className="hidden md:flex items-center space-x-2">
             {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group ${
                   pathname === item.href
-                    ? 'bg-blue-50 text-blue-600 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/80'
                 }`}
               >
-                <span className="text-lg">{item.icon}</span>
+                <span className={`text-base transition-transform group-hover:scale-110 ${pathname === item.href ? 'filter brightness-0 invert' : ''}`}>
+                  {item.icon}
+                </span>
                 <span>{item.label}</span>
               </Link>
             ))}
+            
+            {/* Auth Buttons */}
+            {!isAuthenticated ? (
+              <div className="flex items-center space-x-3 ml-6">
+                <Link
+                  href="/login"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  href="/signup"
+                  className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-sm font-medium rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-md hover:shadow-lg hover:shadow-blue-600/25"
+                >
+                  Get Started
+                </Link>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-4 ml-6">
+                <Link
+                  href="/expenses/new"
+                  className="flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white text-sm font-medium rounded-xl hover:from-emerald-700 hover:to-emerald-800 transition-all duration-200 shadow-md hover:shadow-lg hover:shadow-emerald-600/25"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                  </svg>
+                  <span>Add</span>
+                </Link>
+                <div className="relative">
+                  <button
+                    onClick={() => setShowUserMenu(!showUserMenu)}
+                    className="flex items-center space-x-3 px-3 py-2 rounded-xl hover:bg-gray-100/80 transition-all duration-200 group"
+                  >
+                    <img
+                      src={user?.avatar}
+                      alt={user?.name}
+                      className="w-9 h-9 rounded-full border-2 border-gray-200 group-hover:border-gray-300 transition-colors"
+                    />
+                    <div className="hidden sm:block text-left">
+                      <p className="text-sm font-medium text-gray-900">{user?.name}</p>
+                      <p className="text-xs text-gray-500">Account</p>
+                    </div>
+                    <svg className="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  
+                  {showUserMenu && (
+                    <div className="absolute right-0 mt-3 w-64 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-gray-200/50 py-2 z-50">
+                      <div className="px-4 py-4 border-b border-gray-100">
+                        <div className="flex items-center space-x-3">
+                          <img
+                            src={user?.avatar}
+                            alt={user?.name}
+                            className="w-12 h-12 rounded-full"
+                          />
+                          <div>
+                            <p className="text-sm font-semibold text-gray-900">{user?.name}</p>
+                            <p className="text-xs text-gray-500">{user?.email}</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="py-2">
+                        <Link
+                          href="/profile"
+                          className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-100/80 transition-colors group"
+                          onClick={() => setShowUserMenu(false)}
+                        >
+                          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3 group-hover:bg-blue-200 transition-colors">
+                            <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <p className="font-medium">Profile</p>
+                            <p className="text-xs text-gray-500">Manage your account</p>
+                          </div>
+                        </Link>
+                        <button
+                          onClick={() => { logout(); setShowUserMenu(false); }}
+                          className="flex items-center w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-100/80 transition-colors group"
+                        >
+                          <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center mr-3 group-hover:bg-red-200 transition-colors">
+                            <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                            </svg>
+                          </div>
+                          <div>
+                            <p className="font-medium">Sign out</p>
+                            <p className="text-xs text-gray-500">Logout from your account</p>
+                          </div>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -55,23 +165,78 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Menu - Simple version for now */}
-      <div className="md:hidden border-t border-gray-200/60 bg-white/90 backdrop-blur-md">
-        <div className="px-4 py-2 space-y-1">
+      {/* Mobile Menu */}
+      <div className="md:hidden border-t border-gray-200/50 bg-white/95 backdrop-blur-xl">
+        <div className="px-4 py-4 space-y-2">
           {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+              className={`flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
                 pathname === item.href
-                  ? 'bg-blue-50 text-blue-600'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  ? 'bg-blue-600 text-white shadow-lg'
+                  : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100/80'
               }`}
             >
-              <span className="text-lg">{item.icon}</span>
+              <span className={`text-base ${pathname === item.href ? 'filter brightness-0 invert' : ''}`}>
+                {item.icon}
+              </span>
               <span>{item.label}</span>
             </Link>
           ))}
+          
+          {/* Mobile Auth Buttons */}
+          {!isAuthenticated ? (
+            <div className="pt-4 space-y-3 border-t border-gray-200/50 mt-4">
+              <Link
+                href="/login"
+                className="block px-4 py-3 rounded-xl text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100/80 transition-all duration-200 text-center"
+              >
+                Sign In
+              </Link>
+              <Link
+                href="/signup"
+                className="block px-4 py-3 rounded-xl text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 transition-all duration-200 text-center shadow-lg"
+              >
+                Get Started
+              </Link>
+            </div>
+          ) : (
+            <div className="pt-4 border-t border-gray-200/50 mt-4 space-y-3">
+              <Link
+                href="/expenses/new"
+                className="flex items-center justify-center space-x-2 px-4 py-3 rounded-xl text-sm font-medium text-white bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 transition-all duration-200 shadow-lg"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                </svg>
+                <span>Add Expense</span>
+              </Link>
+              <Link
+                href="/profile"
+                className="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100/80 transition-all duration-200"
+              >
+                <img
+                  src={user?.avatar}
+                  alt={user?.name}
+                  className="w-8 h-8 rounded-full border-2 border-gray-200"
+                />
+                <div>
+                  <p className="font-medium">{user?.name}</p>
+                  <p className="text-xs text-gray-500">View Profile</p>
+                </div>
+              </Link>
+              <button
+                onClick={logout}
+                className="flex items-center space-x-3 w-full px-4 py-3 rounded-xl text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 transition-all duration-200"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                <span>Sign Out</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </nav>

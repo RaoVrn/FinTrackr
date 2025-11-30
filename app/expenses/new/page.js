@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import ProtectedRoute from "../../components/ProtectedRoute";
+import { expenseAPI } from "../../lib/api";
 
-export default function AddExpense() {
+function AddExpenseContent() {
   const router = useRouter();
   const [form, setForm] = useState({
     title: "",
@@ -55,25 +57,15 @@ export default function AddExpense() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("/api/expenses", {
-        method: "POST",
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...form,
-          amount: parseFloat(form.amount),
-        }),
+      await expenseAPI.create({
+        ...form,
+        amount: parseFloat(form.amount),
       });
-
-      if (response.ok) {
-        router.push('/expenses');
-      } else {
-        console.error('Failed to add expense');
-        setIsSubmitting(false);
-      }
+      
+      router.push('/expenses');
     } catch (error) {
       console.error('Error adding expense:', error);
+      setErrors({ submit: error.message });
       setIsSubmitting(false);
     }
   };
@@ -104,6 +96,13 @@ export default function AddExpense() {
       {/* Form */}
       <div className="card animate-slide-up">
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Submit Error */}
+          {errors.submit && (
+            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
+              {errors.submit}
+            </div>
+          )}
+          
           {/* Title */}
           <div>
             <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
@@ -215,5 +214,13 @@ export default function AddExpense() {
         </ul>
       </div>
     </div>
+  );
+}
+
+export default function AddExpense() {
+  return (
+    <ProtectedRoute>
+      <AddExpenseContent />
+    </ProtectedRoute>
   );
 }
