@@ -220,69 +220,69 @@ function IncomeContent() {
         </div>
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           {/* Total Income Card */}
-          <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-white/20">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center">
-                <span className="text-white text-xl">💰</span>
+          <div className="bg-white/80 backdrop-blur-sm p-3 rounded-lg shadow-lg border border-white/20">
+            <div className="flex items-center justify-center mb-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
+                <span className="text-white text-sm">💰</span>
               </div>
             </div>
-            <h3 className="font-semibold text-gray-900 mb-1">Total Income</h3>
-            <p className="text-2xl font-bold text-gray-900">₹{summary.totalIncome.toLocaleString()}</p>
-            <p className="text-sm text-green-600">All time earnings</p>
+            <h3 className="font-medium text-gray-900 mb-1 text-sm text-center">Total Income</h3>
+            <p className="text-lg font-bold text-gray-900 text-center">₹{summary.totalIncome.toLocaleString()}</p>
+            <p className="text-xs text-green-600 text-center">All time earnings</p>
           </div>
 
           {/* This Month Card */}
-          <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-white/20">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
-                <span className="text-white text-xl">📅</span>
+          <div className="bg-white/80 backdrop-blur-sm p-3 rounded-lg shadow-lg border border-white/20">
+            <div className="flex items-center justify-center mb-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                <span className="text-white text-sm">📅</span>
               </div>
             </div>
-            <h3 className="font-semibold text-gray-900 mb-1">This Month</h3>
-            <p className="text-2xl font-bold text-gray-900">₹{summary.monthlyIncome.toLocaleString()}</p>
-            <p className="text-sm text-blue-600">Monthly earnings</p>
+            <h3 className="font-medium text-gray-900 mb-1 text-sm text-center">This Month</h3>
+            <p className="text-lg font-bold text-gray-900 text-center">₹{summary.monthlyIncome.toLocaleString()}</p>
+            <p className="text-xs text-blue-600 text-center">Monthly earnings</p>
           </div>
 
           {/* Income Sources Card - Conditionally Hide if No Sources */}
           {summary.incomeSourcesCount > 0 && (
-            <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-white/20">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center">
-                  <span className="text-white text-xl">📊</span>
+            <div className="bg-white/80 backdrop-blur-sm p-3 rounded-lg shadow-lg border border-white/20">
+              <div className="flex items-center justify-center mb-2">
+                <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white text-sm">📊</span>
                 </div>
               </div>
-              <h3 className="font-semibold text-gray-900 mb-1">Income Sources</h3>
-              <p className="text-2xl font-bold text-gray-900">{summary.incomeSourcesCount}</p>
-              <p className="text-sm text-purple-600">Active sources</p>
+              <h3 className="font-medium text-gray-900 mb-1 text-sm text-center">Income Sources</h3>
+              <p className="text-lg font-bold text-gray-900 text-center">{summary.incomeSourcesCount}</p>
+              <p className="text-xs text-purple-600 text-center">Active sources</p>
             </div>
           )}
 
           {/* Average Income Card - Conditionally Hide if No Sources */}
           {summary.incomeSourcesCount > 0 && (
-            <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-white/20">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-xl flex items-center justify-center">
-                  <span className="text-white text-xl">📈</span>
+            <div className="bg-white/80 backdrop-blur-sm p-3 rounded-lg shadow-lg border border-white/20">
+              <div className="flex items-center justify-center mb-2">
+                <div className="w-8 h-8 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white text-sm">📈</span>
                 </div>
               </div>
-              <h3 className="font-semibold text-gray-900 mb-1">Average Income Per Source</h3>
-              <p className="text-2xl font-bold text-gray-900">₹{Math.round(summary.averageIncomePerSource).toLocaleString()}</p>
-              <p className="text-sm text-orange-600">Per source</p>
+              <h3 className="font-medium text-gray-900 mb-1 text-sm text-center">Average Per Source</h3>
+              <p className="text-lg font-bold text-gray-900 text-center">₹{Math.round(summary.averageIncomePerSource).toLocaleString()}</p>
+              <p className="text-xs text-orange-600 text-center">Per source</p>
             </div>
           )}
         </div>
 
         {/* Expected Income Section - Only Show if Recurring Income Exists */}
         {summary.recurringIncomeCount > 0 && summary.nextExpectedIncome && (
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6 mb-8">
-            <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl flex items-center justify-center">
-                <span className="text-white text-2xl">⏰</span>
+          <div className="bg-white/80 backdrop-blur-sm rounded-lg shadow-lg border border-white/20 p-3 mb-4">
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl flex items-center justify-center">
+                <span className="text-white text-lg">⏰</span>
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">Next Expected Income</h3>
+                <h3 className="text-base font-semibold text-gray-900 mb-1">Next Expected Income</h3>
                 <p className="text-gray-600">
                   <span className="font-medium">{summary.nextExpectedIncome.title}</span> - 
                   <span className="text-green-600 font-bold"> ₹{summary.nextExpectedIncome.amount.toLocaleString()}</span>
@@ -296,11 +296,11 @@ function IncomeContent() {
         )}
 
         {/* Income List */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-6 space-y-4 lg:space-y-0">
+        <div className="bg-white/80 backdrop-blur-sm rounded-lg shadow-lg border border-white/20 p-4">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-4 space-y-3 lg:space-y-0">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-1">Your Income Sources</h2>
-              <p className="text-gray-600">Manage and track all your earnings</p>
+              <h2 className="text-xl font-bold text-gray-900 mb-1">Your Income Sources</h2>
+              <p className="text-sm text-gray-600">Manage and track all your earnings</p>
             </div>
             <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
               {/* Search Bar */}
@@ -333,17 +333,17 @@ function IncomeContent() {
           {incomes.length > 0 ? (
             <div className="space-y-4">
               {incomes.map((income) => (
-                <div key={income._id} className="relative bg-white p-6 rounded-xl border border-gray-100 hover:shadow-md transition-shadow">
-                  <div className={`absolute left-0 top-0 w-1 h-full bg-gradient-to-b ${getCategoryColor(income.category)} rounded-l-xl`}></div>
+                <div key={income._id} className="relative bg-white p-3 rounded-lg border border-gray-100 hover:shadow-md transition-shadow">
+                  <div className={`absolute left-0 top-0 w-1 h-full bg-gradient-to-b ${getCategoryColor(income.category)} rounded-l-lg`}></div>
                   
                   <div className="flex items-start justify-between">
-                    <div className="flex items-center space-x-4 flex-1">
-                      <div className="text-3xl">
+                    <div className="flex items-center space-x-3 flex-1">
+                      <div className="text-2xl">
                         {getCategoryIcon(income.category)}
                       </div>
                       <div className="flex-1">
-                        <div className="flex items-center space-x-3 mb-2">
-                          <h3 className="text-lg font-semibold text-gray-900">{income.title}</h3>
+                        <div className="flex items-center space-x-3 mb-1">
+                          <h3 className="text-base font-semibold text-gray-900">{income.title}</h3>
                           {getFrequencyBadge(income.frequency, income.isRecurring)}
                         </div>
                         <p className="text-sm text-gray-600 mb-1 capitalize">{income.category} • {income.source}</p>

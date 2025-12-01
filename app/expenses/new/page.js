@@ -192,27 +192,28 @@ function AddExpenseContent() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center space-x-4 mb-4">
-          <Link 
-            href="/expenses"
-            className="text-gray-500 hover:text-gray-700 transition-colors duration-200 flex items-center"
-          >
-            <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to Expenses
-          </Link>
+    <div className="min-h-screen bg-gradient-to-br from-rose-50 via-pink-50 to-red-50">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center space-x-4 mb-4">
+            <Link 
+              href="/expenses"
+              className="text-red-500 hover:text-red-700 transition-colors duration-200 flex items-center"
+            >
+              <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Back to Expenses
+            </Link>
+          </div>
+          <h1 className="text-4xl font-bold text-red-600 mb-2">Add New Expense</h1>
+          <p className="text-gray-600">Track your spending with detailed expense information.</p>
         </div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Add New Expense</h1>
-        <p className="text-gray-600">Track your spending with detailed expense information.</p>
-      </div>
 
-      {/* Form */}
-      <div className="bg-white shadow-lg rounded-xl p-8">
-        <form onSubmit={handleSubmit} className="space-y-8">
+        {/* Form */}
+        <div className="bg-white shadow-lg rounded-xl p-8">
+          <form onSubmit={handleSubmit} className="space-y-8">
           {/* Submit Error */}
           {errors.submit && (
             <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
@@ -243,7 +244,7 @@ function AddExpenseContent() {
                 placeholder="e.g., Groceries from Walmart, Uber ride, Coffee"
                 value={form.title}
                 onChange={(e) => handleInputChange('title', e.target.value)}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all ${
                   errors.title ? 'border-red-300' : 'border-gray-300'
                 }`}
                 maxLength="100"
@@ -270,7 +271,7 @@ function AddExpenseContent() {
                     placeholder="0.00"
                     value={form.amount}
                     onChange={(e) => handleInputChange('amount', e.target.value)}
-                    className={`w-full pl-8 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
+                    className={`w-full pl-8 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all ${
                       errors.amount ? 'border-red-300' : 'border-gray-300'
                     }`}
                   />
@@ -358,7 +359,7 @@ function AddExpenseContent() {
                         onClick={() => handleInputChange('category', cat.value)}
                         className={`p-3 rounded-lg border-2 transition-all duration-200 flex flex-col items-center space-y-2 hover:shadow-md min-h-[80px] ${
                           form.category === cat.value
-                            ? 'border-blue-500 bg-blue-50 shadow-md transform scale-105'
+                            ? 'border-red-500 bg-red-50 shadow-md transform scale-105'
                             : 'border-gray-200 hover:border-gray-300 bg-white hover:bg-gray-50'
                         }`}
                       >
@@ -410,7 +411,7 @@ function AddExpenseContent() {
                             placeholder="e.g., Hobbies, Side Projects, Coffee Addiction"
                             value={customCategory.name}
                             onChange={(e) => setCustomCategory({ ...customCategory, name: e.target.value })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-transparent"
                             maxLength="50"
                           />
                         </div>
@@ -491,7 +492,7 @@ function AddExpenseContent() {
                             onClick={() => handleInputChange('category', cat.value)}
                             className={`p-3 rounded-lg border-2 transition-all duration-200 flex flex-col items-center space-y-2 hover:shadow-md min-h-[80px] relative ${
                               form.category === cat.value
-                                ? 'border-blue-500 bg-blue-50 shadow-md transform scale-105'
+                                ? 'border-red-500 bg-red-50 shadow-md transform scale-105'
                                 : 'border-purple-200 hover:border-purple-300 bg-purple-50 hover:bg-purple-100'
                             }`}
                           >
@@ -528,7 +529,7 @@ function AddExpenseContent() {
                 id="paymentMethod"
                 value={form.paymentMethod}
                 onChange={(e) => handleInputChange('paymentMethod', e.target.value)}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
                   errors.paymentMethod ? 'border-red-300' : 'border-gray-300'
                 }`}
               >
@@ -570,7 +571,7 @@ function AddExpenseContent() {
                   type="time"
                   value={form.time}
                   onChange={(e) => handleInputChange('time', e.target.value)}
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
                     errors.time ? 'border-red-300' : 'border-gray-300'
                   }`}
                 />
@@ -619,7 +620,7 @@ function AddExpenseContent() {
                   onClick={() => handleInputChange('needOrWant', 'unsure')}
                   className={`py-3 px-4 rounded-lg border-2 transition-all ${
                     form.needOrWant === 'unsure'
-                      ? 'border-blue-500 bg-blue-50 text-blue-700'
+                      ? 'border-red-500 bg-red-50 text-red-700'
                       : 'border-gray-200 text-gray-700 hover:border-gray-300'
                   }`}
                 >
@@ -764,7 +765,7 @@ function AddExpenseContent() {
                       id="recurringInterval"
                       value={form.recurringInterval}
                       onChange={(e) => handleInputChange('recurringInterval', e.target.value)}
-                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
                         errors.recurringInterval ? 'border-red-300' : 'border-gray-300'
                       }`}
                     >
@@ -804,7 +805,7 @@ function AddExpenseContent() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium"
+              className="flex-1 bg-gradient-to-r from-red-500 to-rose-500 text-white py-3 px-6 rounded-lg hover:from-red-600 hover:to-rose-600 focus:ring-4 focus:ring-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium shadow-lg"
             >
               {isSubmitting ? (
                 <span className="flex items-center justify-center">
@@ -825,18 +826,18 @@ function AddExpenseContent() {
               Cancel
             </Link>
           </div>
-        </form>
-      </div>
+          </form>
+        </div>
 
-      {/* Help Section */}
-      <div className="mt-8 bg-blue-50 border border-blue-200 rounded-xl p-6">
-        <h3 className="font-semibold text-blue-900 mb-3 flex items-center">
+        {/* Help Section */}
+        <div className="mt-8 bg-red-50 border border-red-200 rounded-xl p-6">
+          <h3 className="font-semibold text-red-900 mb-3 flex items-center">
           <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
           </svg>
           Tips for Better Expense Tracking
         </h3>
-        <ul className="text-sm text-blue-800 space-y-2">
+          <ul className="text-sm text-red-800 space-y-2">
           <li className="flex items-start">
             <span className="font-medium mr-2">•</span>
             <span>Use descriptive titles that will help you remember the purchase later</span>
@@ -853,7 +854,8 @@ function AddExpenseContent() {
             <span className="font-medium mr-2">•</span>
             <span>Distinguish between "needs" and "wants" to better understand spending patterns</span>
           </li>
-        </ul>
+          </ul>
+        </div>
       </div>
     </div>
   );
