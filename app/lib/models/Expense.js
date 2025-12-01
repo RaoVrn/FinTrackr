@@ -32,10 +32,17 @@ const ExpenseSchema = new Schema(
             'Travel', 'Gifts', 'Other'
           ];
           
-          // Allow predefined categories or any string (for custom categories)
-          return predefinedCategories.includes(v) || (typeof v === 'string' && v.trim().length > 0);
+          // Allow predefined categories or any non-empty string (for custom categories)
+          if (typeof v !== 'string') return false;
+          const trimmedValue = v.trim();
+          
+          // Check if it's a predefined category (case-sensitive match)
+          if (predefinedCategories.includes(v)) return true;
+          
+          // Allow any non-empty string for custom categories
+          return trimmedValue.length > 0 && trimmedValue.length <= 50;
         },
-        message: 'Category must be a valid predefined category or a custom category name'
+        message: 'Please select a valid category or create a custom one'
       }
     },
     categoryIcon: {
@@ -168,5 +175,9 @@ ExpenseSchema.pre('save', function(next) {
   }
 });
 
-export default mongoose.models.Expense ||
-  mongoose.model("Expense", ExpenseSchema);
+// Clear any existing model to avoid caching issues
+if (mongoose.models.Expense) {
+  delete mongoose.models.Expense;
+}
+
+export default mongoose.model("Expense", ExpenseSchema);

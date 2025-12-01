@@ -17,6 +17,7 @@ export default function Navbar() {
   const privateNavItems = [
     { href: '/dashboard', label: 'Dashboard', icon: '📊' },
     { href: '/expenses', label: 'Expenses', icon: '💳' },
+    { href: '/analytics', label: 'Analytics', icon: '📈' },
   ];
 
   const navItems = isAuthenticated ? privateNavItems : publicNavItems;

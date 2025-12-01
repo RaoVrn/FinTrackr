@@ -190,42 +190,43 @@ export const expenseHelpers = {
   // Get category icon
   getCategoryIcon: (category) => {
     const icons = {
-      // Essential Categories
+      // Current simplified categories
       'Food & Dining': '🍽️',
       'Groceries': '🛒',
       'Transport': '🚗',
       'Bills & Utilities': '📄',
       'Health & Medical': '🏥',
       'Housing & Rent': '🏠',
-      // Lifestyle Categories
       'Entertainment': '🎬',
       'Shopping': '🛍️',
-      'Travel & Vacation': '✈️',
       'Education': '📚',
-      'Sports & Fitness': '⚽',
-      'Beauty & Personal Care': '💄',
-      // Financial Categories
       'Insurance': '🛡️',
       'Investments': '📈',
       'Loans & EMI': '🏦',
+      'Travel': '✈️',
+      'Gifts': '🎁',
+      'Other': '📦',
+      
+      // Legacy mappings for backward compatibility
+      'Food': '🍽️',
+      'Bills': '📄',
+      'Health': '🏥',
+      'Travel & Vacation': '✈️',
+      'Gifts & Donations': '🎁',
+      'Sports & Fitness': '⚽',
+      'Beauty & Personal Care': '💄',
       'Taxes': '📊',
-      // Work & Business
       'Business Expenses': '💼',
       'Office Supplies': '📋',
-      // Technology
       'Electronics': '📱',
       'Software & Subscriptions': '💻',
       'Internet & Phone': '📶',
-      // Family & Social
       'Childcare': '👶',
       'Pet Care': '🐕',
-      'Gifts & Donations': '🎁',
-      // Special Categories
       'Emergency': '🚨',
       'Cash Withdrawal': '💰',
       'Refund': '↩️',
-      'Transfer': '🔄',
-      'Other': '📦'
+      'Transfer': '🔄'
     };
     
     return icons[category] || '📦';
