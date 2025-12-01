@@ -13,10 +13,13 @@ function ExpensesContent() {
   useEffect(() => {
     const fetchExpenses = async () => {
       try {
-        const expenses = await expenseAPI.getAll();
+        const result = await expenseAPI.getAll();
+        // Handle new API response format
+        const expenses = result.expenses || result || [];
         setData(expenses);
       } catch (error) {
         console.error('Error fetching expenses:', error);
+        setData([]); // Set empty array on error
       } finally {
         setLoading(false);
       }
@@ -25,11 +28,13 @@ function ExpensesContent() {
     fetchExpenses();
   }, []);
 
-  const categories = ['all', ...new Set(data.map(exp => exp.category).filter(Boolean))];
+  // Ensure data is always an array
+  const expensesArray = Array.isArray(data) ? data : [];
+  const categories = ['all', ...new Set(expensesArray.map(exp => exp.category).filter(Boolean))];
   
   const filteredData = filter === 'all' 
-    ? data 
-    : data.filter(exp => exp.category === filter);
+    ? expensesArray 
+    : expensesArray.filter(exp => exp.category === filter);
 
   const totalAmount = filteredData.reduce((sum, exp) => sum + (exp.amount || 0), 0);
 
@@ -96,7 +101,7 @@ function ExpensesContent() {
               expense={expense} 
               index={index}
               onDelete={() => {
-                setData(data.filter(exp => exp._id !== expense._id));
+                setData(expensesArray.filter(exp => exp._id !== expense._id));
               }}
             />
           ))}

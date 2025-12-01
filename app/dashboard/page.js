@@ -21,10 +21,13 @@ function DashboardContent() {
     const fetchExpenses = async () => {
       try {
         const data = await expenseAPI.getAll();
-        setExpenses(data);
-        calculateStats(data);
+        // Handle new API response format
+        const expensesArray = data.expenses || data || [];
+        setExpenses(expensesArray);
+        calculateStats(expensesArray);
       } catch (error) {
         console.error('Error fetching expenses:', error);
+        setExpenses([]); // Set empty array on error
       } finally {
         setLoading(false);
       }
@@ -56,7 +59,9 @@ function DashboardContent() {
 
   const getCategoryStats = () => {
     const categoryTotals = {};
-    expenses.forEach(expense => {
+    // Ensure expenses is always an array
+    const expensesArray = Array.isArray(expenses) ? expenses : [];
+    expensesArray.forEach(expense => {
       const category = expense.category || 'Uncategorized';
       categoryTotals[category] = (categoryTotals[category] || 0) + (expense.amount || 0);
     });
@@ -67,7 +72,9 @@ function DashboardContent() {
   };
 
   const getRecentExpenses = () => {
-    return expenses
+    // Ensure expenses is always an array
+    const expensesArray = Array.isArray(expenses) ? expenses : [];
+    return expensesArray
       .sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date))
       .slice(0, 3);
   };
