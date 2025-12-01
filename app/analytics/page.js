@@ -237,36 +237,19 @@ function AnalyticsContent() {
                   className="transition-all duration-700 hover:stroke-[18] cursor-pointer"
                   filter="url(#glow)"
                   strokeLinecap="round"
-                  style={{
-                    animation: `drawPieSlice 1.5s ease-out forwards`,
-                    animationDelay: `${index * 0.2}s`,
-                    opacity: 0
-                  }}
+
                 />
               );
             })}
           </svg>
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center bg-white/95 backdrop-blur-sm rounded-full p-3 shadow-xl border border-white/50 group-hover:scale-105 transition-transform duration-300">
+            <div className="text-center bg-white rounded-full p-3 shadow-lg border border-gray-200">
               <div className="text-lg font-bold bg-gradient-to-br from-blue-600 to-purple-600 bg-clip-text text-transparent">₹{total.toFixed(0)}</div>
               <div className="text-xs font-semibold text-gray-500">Total</div>
             </div>
           </div>
         </div>
-        <style jsx>{`
-          @keyframes drawPieSlice {
-            0% {
-              stroke-dasharray: 0 ${2 * Math.PI * 60};
-              opacity: 0;
-            }
-            50% {
-              opacity: 0.7;
-            }
-            100% {
-              opacity: 1;
-            }
-          }
-        `}</style>
+
       </div>
     );
   };
@@ -331,39 +314,22 @@ function AnalyticsContent() {
                   strokeWidth="20"
                   strokeDasharray={strokeDasharray}
                   strokeDashoffset={strokeDashoffset}
-                  className="transition-all duration-700 hover:stroke-[24] cursor-pointer"
+                  className="transition-all duration-300 hover:stroke-[22] cursor-pointer"
                   strokeLinecap="round"
                   filter="url(#donut-glow)"
-                  style={{
-                    animation: `drawDonutSlice 1.8s ease-out forwards`,
-                    opacity: 0,
-                    animationDelay: `${index * 0.3}s`
-                  }}
+
                 />
               );
             })}
           </svg>
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center bg-white/98 backdrop-blur-sm rounded-full p-4 shadow-xl border border-white/70 group-hover:scale-110 transition-transform duration-300">
-              <div className="text-lg font-bold bg-gradient-to-br from-green-600 to-purple-600 bg-clip-text text-transparent animate-pulse">₹{total.toFixed(0)}</div>
+            <div className="text-center bg-white rounded-full p-4 shadow-lg border border-gray-200">
+              <div className="text-lg font-bold bg-gradient-to-br from-green-600 to-purple-600 bg-clip-text text-transparent">₹{total.toFixed(0)}</div>
               <div className="text-xs font-semibold text-gray-600">Total</div>
             </div>
           </div>
         </div>
-        <style jsx>{`
-          @keyframes drawDonutSlice {
-            0% {
-              stroke-dasharray: 0 ${2 * Math.PI * 55};
-              opacity: 0;
-            }
-            60% {
-              opacity: 0.8;
-            }
-            100% {
-              opacity: 1;
-            }
-          }
-        `}</style>
+
       </div>
     );
   };
@@ -532,46 +498,25 @@ function AnalyticsContent() {
         {data.map((item, index) => (
           <div key={item.month} className="group">
             <div className="flex items-center justify-between mb-3">
-              <div className="text-sm font-bold text-gray-800 group-hover:text-blue-600 transition-colors duration-300">
+              <div className="text-sm font-semibold text-gray-700">
                 {item.month}
               </div>
-              <div className="text-sm font-bold text-gray-900 bg-white/80 backdrop-blur-sm px-3 py-1.5 rounded-xl shadow-lg border border-gray-200/50 group-hover:border-blue-300/50 transition-all duration-300">
+              <div className="text-sm font-bold text-gray-900 bg-gray-100 px-3 py-1 rounded-lg">
                 ₹{item.amount.toFixed(0)}
               </div>
             </div>
-            <div className="relative bg-gradient-to-r from-gray-100/60 via-gray-50 to-gray-100/60 rounded-xl h-10 shadow-inner overflow-hidden border border-gray-200/50">
+            <div className="bg-gray-200 rounded-lg h-8 relative overflow-hidden">
               <div
-                className={`bg-gradient-to-r ${gradients[index % gradients.length]} h-10 rounded-xl shadow-xl transition-all duration-1000 ease-out group-hover:shadow-2xl relative overflow-hidden animate-bar-grow`}
+                className={`bg-gradient-to-r ${gradients[index % gradients.length]} h-8 rounded-lg transition-all duration-500 ease-out`}
                 style={{ 
-                  width: `${Math.max((item.amount / maxAmount) * 100, 5)}%`,
-                  animationDelay: `${index * 0.2}s`
+                  width: `${Math.max((item.amount / maxAmount) * 100, 5)}%`
                 }}
               >
-                <div className="absolute inset-0 bg-white/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-white/10"></div>
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-pulse"></div>
               </div>
             </div>
           </div>
         ))}
-        <style jsx>{`
-          .animate-bar-grow {
-            animation: bar-grow 1.2s ease-out forwards;
-          }
-          @keyframes bar-grow {
-            0% {
-              transform: scaleX(0);
-              opacity: 0;
-            }
-            50% {
-              opacity: 0.7;
-            }
-            100% {
-              transform: scaleX(1);
-              opacity: 1;
-            }
-          }
-        `}</style>
+
       </div>
     );
   };
@@ -662,49 +607,45 @@ function AnalyticsContent() {
           <div className="space-y-12">
             {/* Overview Stats */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="bg-gradient-to-br from-blue-50/80 via-blue-50 to-indigo-50/80 p-6 rounded-3xl border border-blue-100/60 hover:shadow-2xl hover:border-blue-200 transition-all duration-500 group backdrop-blur-sm relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                <div className="flex items-center justify-between relative z-10">
+              <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
+                <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-bold text-blue-600 mb-2 group-hover:text-blue-700 transition-colors duration-300">Total Spent</p>
-                    <p className="text-3xl font-bold text-blue-900 group-hover:scale-105 transition-transform duration-300">₹{totalSpent.toFixed(0)}</p>
+                    <p className="text-sm font-semibold text-blue-600 mb-1">Total Spent</p>
+                    <p className="text-3xl font-bold text-blue-900">₹{totalSpent.toFixed(0)}</p>
                   </div>
-                  <div className="text-5xl group-hover:scale-125 group-hover:rotate-12 transition-all duration-500 drop-shadow-lg">💰</div>
+                  <div className="text-4xl">💰</div>
                 </div>
               </div>
               
-              <div className="bg-gradient-to-br from-emerald-50/80 via-emerald-50 to-teal-50/80 p-6 rounded-3xl border border-emerald-100/60 hover:shadow-2xl hover:border-emerald-200 transition-all duration-500 group backdrop-blur-sm relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                <div className="flex items-center justify-between relative z-10">
+              <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
+                <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-bold text-emerald-600 mb-2 group-hover:text-emerald-700 transition-colors duration-300">Total Transactions</p>
-                    <p className="text-3xl font-bold text-emerald-900 group-hover:scale-105 transition-transform duration-300">{expenses.length}</p>
+                    <p className="text-sm font-semibold text-emerald-600 mb-1">Total Transactions</p>
+                    <p className="text-3xl font-bold text-emerald-900">{expenses.length}</p>
                   </div>
-                  <div className="text-5xl group-hover:scale-125 group-hover:rotate-12 transition-all duration-500 drop-shadow-lg">📊</div>
+                  <div className="text-4xl">📊</div>
                 </div>
               </div>
               
-              <div className="bg-gradient-to-br from-purple-50/80 via-purple-50 to-violet-50/80 p-6 rounded-3xl border border-purple-100/60 hover:shadow-2xl hover:border-purple-200 transition-all duration-500 group backdrop-blur-sm relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                <div className="flex items-center justify-between relative z-10">
+              <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
+                <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-bold text-purple-600 mb-2 group-hover:text-purple-700 transition-colors duration-300">Average per Transaction</p>
-                    <p className="text-3xl font-bold text-purple-900 group-hover:scale-105 transition-transform duration-300">
+                    <p className="text-sm font-semibold text-purple-600 mb-1">Average per Transaction</p>
+                    <p className="text-3xl font-bold text-purple-900">
                       ₹{expenses.length > 0 ? (totalSpent / expenses.length).toFixed(0) : '0'}
                     </p>
                   </div>
-                  <div className="text-5xl group-hover:scale-125 group-hover:rotate-12 transition-all duration-500 drop-shadow-lg">📈</div>
+                  <div className="text-4xl">📈</div>
                 </div>
               </div>
               
-              <div className="bg-gradient-to-br from-amber-50/80 via-amber-50 to-orange-50/80 p-6 rounded-3xl border border-amber-100/60 hover:shadow-2xl hover:border-amber-200 transition-all duration-500 group backdrop-blur-sm relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                <div className="flex items-center justify-between relative z-10">
+              <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
+                <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-bold text-amber-600 mb-2 group-hover:text-amber-700 transition-colors duration-300">Categories Used</p>
-                    <p className="text-3xl font-bold text-amber-900 group-hover:scale-105 transition-transform duration-300">{categoryDistribution.length}</p>
+                    <p className="text-sm font-semibold text-amber-600 mb-1">Categories Used</p>
+                    <p className="text-3xl font-bold text-amber-900">{categoryDistribution.length}</p>
                   </div>
-                  <div className="text-5xl group-hover:scale-125 group-hover:rotate-12 transition-all duration-500 drop-shadow-lg">🏷️</div>
+                  <div className="text-4xl">🏷️</div>
                 </div>
               </div>
             </div>
@@ -716,8 +657,8 @@ function AnalyticsContent() {
                 <div className="flex items-center mb-6">
                   <div className="w-1 h-8 bg-gradient-to-b from-blue-500 to-purple-500 rounded-full mr-3"></div>
                   <div className="min-w-0 flex-1">
-                    <h3 className="text-lg font-bold text-gray-800 truncate group-hover:text-blue-600 transition-colors duration-300">Category Distribution</h3>
-                    <p className="text-xs text-gray-600 mt-1 truncate group-hover:text-blue-500 transition-colors duration-300">Breakdown by categories</p>
+                    <h3 className="text-lg font-bold text-gray-800 truncate">Category Distribution</h3>
+                    <p className="text-xs text-gray-500 mt-1 truncate">Breakdown by categories</p>
                   </div>
                 </div>
                 <div className="flex flex-col items-center space-y-4">
@@ -753,8 +694,8 @@ function AnalyticsContent() {
                 <div className="flex items-center mb-6">
                   <div className="w-1 h-8 bg-gradient-to-b from-green-500 to-orange-500 rounded-full mr-3"></div>
                   <div className="min-w-0 flex-1">
-                    <h3 className="text-lg font-bold text-gray-800 truncate group-hover:text-green-600 transition-colors duration-300">Need vs Want vs Unsure</h3>
-                    <p className="text-xs text-gray-600 mt-1 truncate group-hover:text-green-500 transition-colors duration-300">Priority analysis</p>
+                    <h3 className="text-lg font-bold text-gray-800 truncate">Need vs Want vs Unsure</h3>
+                    <p className="text-xs text-gray-500 mt-1 truncate">Priority analysis</p>
                   </div>
                 </div>
                 <div className="flex flex-col items-center space-y-4">
@@ -795,8 +736,8 @@ function AnalyticsContent() {
                 <div className="flex items-center mb-6">
                   <div className="w-1 h-8 bg-gradient-to-b from-blue-500 to-cyan-500 rounded-full mr-3"></div>
                   <div className="min-w-0 flex-1">
-                    <h3 className="text-lg font-bold text-gray-800 truncate group-hover:text-cyan-600 transition-colors duration-300">Daily Spending Trend</h3>
-                    <p className="text-xs text-gray-600 mt-1 truncate group-hover:text-cyan-500 transition-colors duration-300">Pattern analysis</p>
+                    <h3 className="text-lg font-bold text-gray-800 truncate">Daily Spending Trend</h3>
+                    <p className="text-xs text-gray-500 mt-1 truncate">Pattern analysis</p>
                   </div>
                 </div>
                 <div className="bg-gradient-to-br from-blue-50/80 via-indigo-50/60 to-cyan-50/80 rounded-xl p-4 mb-4 border border-blue-100/50 shadow-inner">

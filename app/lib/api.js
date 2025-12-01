@@ -277,5 +277,26 @@ export const expenseHelpers = {
       groups[date].push(expense);
       return groups;
     }, {});
+  },
+
+  // Get available categories
+  getCategories: () => {
+    return [
+      'Food & Dining',
+      'Groceries',
+      'Transport',
+      'Bills & Utilities',
+      'Health & Medical',
+      'Housing & Rent',
+      'Entertainment',
+      'Shopping',
+      'Education',
+      'Insurance',
+      'Investments',
+      'Loans & EMI',
+      'Travel',
+      'Gifts',
+      'Other'
+    ];
   }
 };
