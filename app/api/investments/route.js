@@ -19,7 +19,7 @@ const verifyToken = (request) => {
   }
 };
 
-// GET - Fetch all investments for authenticated user
+// GET - Fetch all investments with portfolio summary
 export async function GET(request) {
   try {
     await connectDB();
@@ -31,33 +31,73 @@ export async function GET(request) {
     // Get query parameters for filtering
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type');
+    const riskLevel = searchParams.get('riskLevel');
+    const category = searchParams.get('category');
+    const search = searchParams.get('search');
     const page = parseInt(searchParams.get('page')) || 1;
     const limit = parseInt(searchParams.get('limit')) || 50;
-    const skip = (page - 1) * limit;
 
-    // Build filter query
-    let filter = { user: userId };
-    if (type && type !== 'all') {
-      filter.type = type;
+    // Build filters
+    const filters = { type, riskLevel, category, search };
+    Object.keys(filters).forEach(key => {
+      if (!filters[key] || filters[key] === 'all') {
+        delete filters[key];
+      }
+    });
+
+    // Get portfolio summary with filters applied
+    let portfolioSummary;
+    let assetAllocation = [];
+
+    if (typeof Investment.getPortfolioSummary === 'function') {
+      portfolioSummary = await Investment.getPortfolioSummary(userId, filters);
+      
+      if (typeof Investment.getAssetAllocation === 'function') {
+        assetAllocation = await Investment.getAssetAllocation(userId);
+      }
+    } else {
+      // Fallback: Manual aggregation if static methods aren't available
+      const matchQuery = { userId };
+      if (filters.type && filters.type !== 'all') matchQuery.type = filters.type;
+      if (filters.riskLevel && filters.riskLevel !== 'all') matchQuery.riskLevel = filters.riskLevel;
+      if (filters.search) {
+        matchQuery.$or = [
+          { name: { $regex: filters.search, $options: 'i' } },
+          { tickerSymbol: { $regex: filters.search, $options: 'i' } }
+        ];
+      }
+
+      const investments = await Investment.find(matchQuery).sort({ createdAt: -1 });
+      
+      portfolioSummary = {
+        totalInvested: investments.reduce((sum, inv) => sum + (inv.investedAmount || 0), 0),
+        currentValue: investments.reduce((sum, inv) => sum + (inv.currentValue || 0), 0),
+        totalPnL: investments.reduce((sum, inv) => sum + (inv.pnl || 0), 0),
+        portfolioCount: investments.length,
+        pnlPercent: 0,
+        investments: investments
+      };
+
+      if (portfolioSummary.totalInvested > 0) {
+        portfolioSummary.pnlPercent = (portfolioSummary.totalPnL / portfolioSummary.totalInvested) * 100;
+      }
     }
-
-    // Fetch investments with pagination
-    const investments = await Investment.find(filter)
-      .sort({ createdAt: -1 })
-      .limit(limit)
-      .skip(skip)
-      .populate('user', 'name email');
-
-    // Get total count for pagination
-    const totalCount = await Investment.countDocuments(filter);
+    
+    // Apply pagination to investments
+    const skip = (page - 1) * limit;
+    const investments = portfolioSummary.investments
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(skip, skip + limit);
 
     return NextResponse.json({
+      ...portfolioSummary,
       investments,
+      assetAllocation,
       pagination: {
         page,
         limit,
-        total: totalCount,
-        pages: Math.ceil(totalCount / limit)
+        total: portfolioSummary.portfolioCount,
+        pages: Math.ceil(portfolioSummary.portfolioCount / limit)
       }
     });
   } catch (error) {
@@ -88,35 +128,77 @@ export async function POST(request) {
     const {
       name,
       type,
-      symbol,
+      category,
+      sector,
+      riskLevel,
+      tags,
+      purchaseDate,
+      investedAmount,
       quantity,
-      avgPrice,
-      currentPrice,
-      description
+      pricePerUnit,
+      fees,
+      currentValue,
+      isSIP,
+      sipAmount,
+      sipStartDate,
+      sipFrequency,
+      expectedSellDate,
+      attachmentUrl,
+      notes,
+      tickerSymbol,
+      isin
     } = body;
 
     // Validate required fields
-    if (!name || !type || !quantity || !avgPrice) {
+    if (!name || !type || !purchaseDate || !investedAmount || !currentValue) {
       return NextResponse.json(
-        { error: 'Missing required fields: name, type, quantity, and avgPrice are required' },
+        { error: 'Missing required fields: name, type, purchaseDate, investedAmount, and currentValue are required' },
+        { status: 400 }
+      );
+    }
+
+    // Validate SIP fields if isSIP is true
+    if (isSIP && (!sipAmount || !sipStartDate || !sipFrequency)) {
+      return NextResponse.json(
+        { error: 'SIP investments require sipAmount, sipStartDate, and sipFrequency' },
         { status: 400 }
       );
     }
 
     // Create new investment
-    const investment = new Investment({
-      user: userId,
+    const investmentData = {
+      userId,
       name: name.trim(),
       type,
-      symbol: symbol?.trim().toUpperCase(),
-      quantity: parseFloat(quantity),
-      avgPrice: parseFloat(avgPrice),
-      currentPrice: currentPrice ? parseFloat(currentPrice) : parseFloat(avgPrice),
-      description: description?.trim()
-    });
+      purchaseDate: new Date(purchaseDate),
+      investedAmount: parseFloat(investedAmount),
+      currentValue: parseFloat(currentValue),
+      riskLevel: riskLevel || 'moderate'
+    };
 
+    // Add optional fields
+    if (category) investmentData.category = category.trim();
+    if (sector) investmentData.sector = sector.trim();
+    if (tags && Array.isArray(tags)) investmentData.tags = tags.map(tag => tag.trim());
+    if (quantity) investmentData.quantity = parseFloat(quantity);
+    if (pricePerUnit) investmentData.pricePerUnit = parseFloat(pricePerUnit);
+    if (fees) investmentData.fees = parseFloat(fees);
+    if (expectedSellDate) investmentData.expectedSellDate = new Date(expectedSellDate);
+    if (attachmentUrl) investmentData.attachmentUrl = attachmentUrl.trim();
+    if (notes) investmentData.notes = notes.trim();
+    if (tickerSymbol) investmentData.tickerSymbol = tickerSymbol.trim().toUpperCase();
+    if (isin) investmentData.isin = isin.trim().toUpperCase();
+
+    // SIP fields
+    if (isSIP) {
+      investmentData.isSIP = true;
+      investmentData.sipAmount = parseFloat(sipAmount);
+      investmentData.sipStartDate = new Date(sipStartDate);
+      investmentData.sipFrequency = sipFrequency;
+    }
+
+    const investment = new Investment(investmentData);
     await investment.save();
-    await investment.populate('user', 'name email');
 
     return NextResponse.json(investment, { status: 201 });
   } catch (error) {
@@ -140,8 +222,8 @@ export async function POST(request) {
   }
 }
 
-// PUT - Update existing investment
-export async function PUT(request) {
+// PATCH - Update existing investment
+export async function PATCH(request) {
   try {
     await connectDB();
     
@@ -159,8 +241,8 @@ export async function PUT(request) {
       );
     }
 
-    // Find and update investment (ensure user owns it)
-    const investment = await Investment.findOne({ _id: id, user: userId });
+    // Find investment (ensure user owns it)
+    const investment = await Investment.findOne({ _id: id, userId });
     if (!investment) {
       return NextResponse.json(
         { error: 'Investment not found or unauthorized' },
@@ -168,33 +250,35 @@ export async function PUT(request) {
       );
     }
 
-    // Handle transaction addition
-    if (updateData.action === 'addTransaction') {
-      const { transactionType, quantity, price, date } = updateData;
-      
-      if (!transactionType || !quantity || !price) {
-        return NextResponse.json(
-          { error: 'Transaction type, quantity, and price are required' },
-          { status: 400 }
-        );
-      }
+    // Update fields
+    const allowedUpdates = [
+      'name', 'type', 'category', 'sector', 'riskLevel', 'tags',
+      'investedAmount', 'quantity', 'pricePerUnit', 'fees', 'currentValue',
+      'expectedSellDate', 'attachmentUrl', 'notes', 'tickerSymbol', 'isin',
+      'isSIP', 'sipAmount', 'sipStartDate', 'sipFrequency'
+    ];
 
-      investment.addTransaction(transactionType, parseFloat(quantity), parseFloat(price), date);
-    } else {
-      // Regular update
-      Object.keys(updateData).forEach(key => {
-        if (key !== 'action' && updateData[key] !== undefined) {
-          investment[key] = updateData[key];
+    allowedUpdates.forEach(field => {
+      if (updateData[field] !== undefined) {
+        if (field === 'tags' && Array.isArray(updateData[field])) {
+          investment[field] = updateData[field].map(tag => tag.trim());
+        } else if (['investedAmount', 'currentValue', 'quantity', 'pricePerUnit', 'fees', 'sipAmount'].includes(field)) {
+          investment[field] = parseFloat(updateData[field]);
+        } else if (['purchaseDate', 'expectedSellDate', 'sipStartDate'].includes(field)) {
+          investment[field] = new Date(updateData[field]);
+        } else if (typeof updateData[field] === 'string') {
+          investment[field] = updateData[field].trim();
+        } else {
+          investment[field] = updateData[field];
         }
-      });
-    }
+      }
+    });
 
     await investment.save();
-    await investment.populate('user', 'name email');
 
     return NextResponse.json(investment);
   } catch (error) {
-    console.error('PUT /api/investments error:', error);
+    console.error('PATCH /api/investments error:', error);
     if (error.message === 'Invalid token' || error.message === 'No token provided') {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -234,7 +318,7 @@ export async function DELETE(request) {
     }
 
     // Find and delete investment (ensure user owns it)
-    const investment = await Investment.findOneAndDelete({ _id: id, user: userId });
+    const investment = await Investment.findOneAndDelete({ _id: id, userId });
     if (!investment) {
       return NextResponse.json(
         { error: 'Investment not found or unauthorized' },
