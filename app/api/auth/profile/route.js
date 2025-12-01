@@ -1,5 +1,8 @@
 import { connectDB } from "@/lib/db";
 import User from "@/lib/models/User";
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 // Helper function to get user from request headers
 function getUserFromRequest(req) {
@@ -10,8 +13,8 @@ function getUserFromRequest(req) {
   
   try {
     const token = authHeader.replace('Bearer ', '');
-    const [userId, email] = token.split(':');
-    return { userId, email };
+    const decoded = jwt.verify(token, JWT_SECRET);
+    return { userId: decoded.userId, email: decoded.email };
   } catch (error) {
     return null;
   }

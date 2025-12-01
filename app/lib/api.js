@@ -10,7 +10,7 @@ export const apiCall = async (url, options = {}) => {
 
   // Add authorization header if token exists
   if (token) {
-    defaultHeaders['Authorization'] = `Bearer ${token}`;
+    defaultHeaders['authorization'] = `Bearer ${token}`;
   }
 
   const config = {
@@ -154,6 +154,104 @@ export const expenseAPI = {
     throw new Error(error?.error || 'Failed to fetch expense statistics');
   },
 };
+
+// Generic API creator for consistent API patterns
+const createAPI = (endpoint) => ({
+  // Get all items with filtering
+  getAll: async (params = {}) => {
+    const queryParams = new URLSearchParams();
+    Object.keys(params).forEach(key => {
+      if (params[key] !== null && params[key] !== undefined) {
+        queryParams.set(key, params[key].toString());
+      }
+    });
+
+    const url = `/api/${endpoint}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    
+    const response = await apiCall(url);
+    if (response && response.ok) {
+      const data = await response.json();
+      // Handle different response formats
+      if (data.expenses) return data.expenses; // For expenses API
+      if (data.incomes) return data.incomes; // For income API  
+      if (data.debts) return data.debts; // For debts API
+      if (data.investments && Array.isArray(data.investments)) return data.investments; // For investments API
+      if (data.budgets) return data.budgets; // For budgets API
+      if (Array.isArray(data)) return data; // Direct array format
+      return []; // Fallback to empty array
+    }
+    
+    const error = await response?.json();
+    throw new Error(error?.error || `Failed to fetch ${endpoint}`);
+  },
+
+  // Get single item by ID
+  getById: async (id) => {
+    const response = await apiCall(`/api/${endpoint}/${id}`);
+    if (response && response.ok) {
+      return await response.json();
+    }
+    
+    const error = await response?.json();
+    throw new Error(error?.error || `Failed to fetch ${endpoint}`);
+  },
+
+  // Create new item
+  create: async (data) => {
+    const response = await apiCall(`/api/${endpoint}`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    
+    if (response && response.ok) {
+      return await response.json();
+    }
+    
+    const error = await response?.json();
+    if (error?.details) {
+      throw new Error(error.details.join(', '));
+    }
+    throw new Error(error?.error || `Failed to create ${endpoint}`);
+  },
+
+  // Update item
+  update: async (id, data) => {
+    const response = await apiCall(`/api/${endpoint}`, {
+      method: 'PUT',
+      body: JSON.stringify({ id, ...data }),
+    });
+    
+    if (response && response.ok) {
+      return await response.json();
+    }
+    
+    const error = await response?.json();
+    if (error?.details) {
+      throw new Error(error.details.join(', '));
+    }
+    throw new Error(error?.error || `Failed to update ${endpoint}`);
+  },
+
+  // Delete item
+  delete: async (id) => {
+    const response = await apiCall(`/api/${endpoint}?id=${id}`, {
+      method: 'DELETE',
+    });
+    
+    if (response && response.ok) {
+      return await response.json();
+    }
+    
+    const error = await response?.json();
+    throw new Error(error?.error || `Failed to delete ${endpoint}`);
+  },
+});
+
+// New API endpoints
+export const incomeAPI = createAPI('income');
+export const debtAPI = createAPI('debts');
+export const investmentAPI = createAPI('investments');
+export const budgetAPI = createAPI('budgets');
 
 // Helper functions for expense management
 export const expenseHelpers = {

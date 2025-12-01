@@ -1,5 +1,8 @@
 import { connectDB } from "@/lib/db";
 import User from "@/lib/models/User";
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 export async function POST(req) {
   try {
@@ -17,13 +20,23 @@ export async function POST(req) {
       return Response.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
+    // Generate JWT token
+    const token = jwt.sign(
+      { 
+        userId: user._id.toString(),
+        email: user.email 
+      },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
     // Return user data (exclude password)
     const { password: _, ...userData } = user.toObject();
     
     return Response.json({
       success: true,
       user: userData,
-      token: `${user._id}:${user.email}` // Simple token format
+      token
     }, { status: 200 });
     
   } catch (error) {

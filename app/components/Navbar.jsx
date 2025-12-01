@@ -15,9 +15,13 @@ export default function Navbar() {
   ];
 
   const privateNavItems = [
-    { href: '/dashboard', label: 'Dashboard', icon: '📊' },
-    { href: '/expenses', label: 'Expenses', icon: '💳' },
-    { href: '/analytics', label: 'Analytics', icon: '📈' },
+    { href: '/dashboard', label: 'Dashboard', icon: '📊', color: 'blue' },
+    { href: '/income', label: 'Income', icon: '💰', color: 'green' },
+    { href: '/expenses', label: 'Expenses', icon: '💸', color: 'red' },
+    { href: '/debts', label: 'Debts', icon: '💳', color: 'orange' },
+    { href: '/investments', label: 'Investments', icon: '📈', color: 'purple' },
+    { href: '/budget', label: 'Budget', icon: '🎯', color: 'indigo' },
+    { href: '/reports', label: 'Reports', icon: '📄', color: 'teal' },
   ];
 
   const navItems = isAuthenticated ? privateNavItems : publicNavItems;
@@ -39,22 +43,35 @@ export default function Navbar() {
 
           {/* Navigation Links */}
           <div className="hidden md:flex items-center space-x-2">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group ${
-                  pathname === item.href
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/80'
-                }`}
-              >
-                <span className={`text-base transition-transform group-hover:scale-110 ${pathname === item.href ? 'filter brightness-0 invert' : ''}`}>
-                  {item.icon}
-                </span>
-                <span>{item.label}</span>
-              </Link>
-            ))}
+            {navItems.map((item) => {
+              const isActive = pathname.startsWith(item.href) || (item.href === '/dashboard' && pathname === '/dashboard');
+              const colorClasses = {
+                blue: { active: 'bg-blue-600 shadow-blue-600/25', hover: 'hover:text-blue-600 hover:bg-blue-50' },
+                green: { active: 'bg-green-600 shadow-green-600/25', hover: 'hover:text-green-600 hover:bg-green-50' },
+                red: { active: 'bg-red-600 shadow-red-600/25', hover: 'hover:text-red-600 hover:bg-red-50' },
+                orange: { active: 'bg-orange-600 shadow-orange-600/25', hover: 'hover:text-orange-600 hover:bg-orange-50' },
+                purple: { active: 'bg-purple-600 shadow-purple-600/25', hover: 'hover:text-purple-600 hover:bg-purple-50' },
+                indigo: { active: 'bg-indigo-600 shadow-indigo-600/25', hover: 'hover:text-indigo-600 hover:bg-indigo-50' },
+                teal: { active: 'bg-teal-600 shadow-teal-600/25', hover: 'hover:text-teal-600 hover:bg-teal-50' }
+              };
+              
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`flex items-center space-x-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group ${
+                    isActive
+                      ? `${colorClasses[item.color]?.active || colorClasses.blue.active} text-white shadow-md`
+                      : `text-gray-600 hover:text-gray-900 hover:bg-gray-100/80 ${colorClasses[item.color]?.hover || ''}`
+                  }`}
+                >
+                  <span className={`text-base transition-transform group-hover:scale-110 ${isActive ? 'filter brightness-0 invert' : ''}`}>
+                    {item.icon}
+                  </span>
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
             
             {/* Auth Buttons */}
             {!isAuthenticated ? (
@@ -169,22 +186,35 @@ export default function Navbar() {
       {/* Mobile Menu */}
       <div className="md:hidden border-t border-gray-200/50 bg-white/95 backdrop-blur-xl">
         <div className="px-4 py-4 space-y-2">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
-                pathname === item.href
-                  ? 'bg-blue-600 text-white shadow-lg'
-                  : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100/80'
-              }`}
-            >
-              <span className={`text-base ${pathname === item.href ? 'filter brightness-0 invert' : ''}`}>
-                {item.icon}
-              </span>
-              <span>{item.label}</span>
-            </Link>
-          ))}
+          {navItems.map((item) => {
+            const isActive = pathname.startsWith(item.href) || (item.href === '/dashboard' && pathname === '/dashboard');
+            const colorClasses = {
+              blue: 'bg-blue-600',
+              green: 'bg-green-600',
+              red: 'bg-red-600',
+              orange: 'bg-orange-600',
+              purple: 'bg-purple-600',
+              indigo: 'bg-indigo-600',
+              teal: 'bg-teal-600'
+            };
+            
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
+                  isActive
+                    ? `${colorClasses[item.color] || colorClasses.blue} text-white shadow-lg`
+                    : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100/80'
+                }`}
+              >
+                <span className={`text-base ${isActive ? 'filter brightness-0 invert' : ''}`}>
+                  {item.icon}
+                </span>
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
           
           {/* Mobile Auth Buttons */}
           {!isAuthenticated ? (
