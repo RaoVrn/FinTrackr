@@ -220,58 +220,62 @@ function IncomeContent() {
         </div>
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          {/* Total Income Card */}
-          <div className="bg-white/80 backdrop-blur-sm p-3 rounded-lg shadow-lg border border-white/20">
-            <div className="flex items-center justify-center mb-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
-                <span className="text-white text-sm">💰</span>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-500 text-sm font-medium">Total Income</p>
+                <p className="text-2xl font-bold text-green-600">₹{summary.totalIncome.toLocaleString()}</p>
+              </div>
+              <div className="bg-green-100 p-3 rounded-full">
+                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                </svg>
               </div>
             </div>
-            <h3 className="font-medium text-gray-900 mb-1 text-sm text-center">Total Income</h3>
-            <p className="text-lg font-bold text-gray-900 text-center">₹{summary.totalIncome.toLocaleString()}</p>
-            <p className="text-xs text-green-600 text-center">All time earnings</p>
           </div>
 
-          {/* This Month Card */}
-          <div className="bg-white/80 backdrop-blur-sm p-3 rounded-lg shadow-lg border border-white/20">
-            <div className="flex items-center justify-center mb-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
-                <span className="text-white text-sm">📅</span>
+          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-500 text-sm font-medium">This Month</p>
+                <p className="text-2xl font-bold text-blue-600">₹{summary.monthlyIncome.toLocaleString()}</p>
+              </div>
+              <div className="bg-blue-100 p-3 rounded-full">
+                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
               </div>
             </div>
-            <h3 className="font-medium text-gray-900 mb-1 text-sm text-center">This Month</h3>
-            <p className="text-lg font-bold text-gray-900 text-center">₹{summary.monthlyIncome.toLocaleString()}</p>
-            <p className="text-xs text-blue-600 text-center">Monthly earnings</p>
           </div>
 
-          {/* Income Sources Card - Conditionally Hide if No Sources */}
-          {summary.incomeSourcesCount > 0 && (
-            <div className="bg-white/80 backdrop-blur-sm p-3 rounded-lg shadow-lg border border-white/20">
-              <div className="flex items-center justify-center mb-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white text-sm">📊</span>
-                </div>
+          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-500 text-sm font-medium">Income Sources</p>
+                <p className="text-2xl font-bold text-purple-600">{summary.incomeSourcesCount}</p>
               </div>
-              <h3 className="font-medium text-gray-900 mb-1 text-sm text-center">Income Sources</h3>
-              <p className="text-lg font-bold text-gray-900 text-center">{summary.incomeSourcesCount}</p>
-              <p className="text-xs text-purple-600 text-center">Active sources</p>
+              <div className="bg-purple-100 p-3 rounded-full">
+                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
             </div>
-          )}
+          </div>
 
-          {/* Average Income Card - Conditionally Hide if No Sources */}
-          {summary.incomeSourcesCount > 0 && (
-            <div className="bg-white/80 backdrop-blur-sm p-3 rounded-lg shadow-lg border border-white/20">
-              <div className="flex items-center justify-center mb-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white text-sm">📈</span>
-                </div>
+          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-500 text-sm font-medium">Recurring Income</p>
+                <p className="text-2xl font-bold text-orange-600">{summary.recurringIncomeCount}</p>
               </div>
-              <h3 className="font-medium text-gray-900 mb-1 text-sm text-center">Average Per Source</h3>
-              <p className="text-lg font-bold text-gray-900 text-center">₹{Math.round(summary.averageIncomePerSource).toLocaleString()}</p>
-              <p className="text-xs text-orange-600 text-center">Per source</p>
+              <div className="bg-orange-100 p-3 rounded-full">
+                <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </div>
             </div>
-          )}
+          </div>
         </div>
 
         {/* Expected Income Section - Only Show if Recurring Income Exists */}

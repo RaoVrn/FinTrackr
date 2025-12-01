@@ -348,8 +348,110 @@ export const incomeAPI = {
   },
 };
 
-// Other API endpoints
-export const debtAPI = createAPI('debts');
+// Enhanced Debt API with new functionality
+export const debtAPI = {
+  // Get all debts with filtering and summary
+  getAll: async (params = {}) => {
+    const queryParams = new URLSearchParams();
+    Object.keys(params).forEach(key => {
+      if (params[key] !== null && params[key] !== undefined && params[key] !== 'all') {
+        queryParams.set(key, params[key].toString());
+      }
+    });
+
+    const url = `/api/debts${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    
+    const response = await apiCall(url);
+    if (response && response.ok) {
+      const data = await response.json();
+      return data.success ? data : { success: false, error: data.error };
+    }
+    
+    const error = await response?.json();
+    throw new Error(error?.error || 'Failed to fetch debts');
+  },
+
+  // Get single debt by ID
+  getById: async (id) => {
+    const response = await apiCall(`/api/debts/${id}`);
+    if (response && response.ok) {
+      const data = await response.json();
+      return data.success ? data.debt : null;
+    }
+    
+    const error = await response?.json();
+    throw new Error(error?.error || 'Failed to fetch debt');
+  },
+
+  // Create new debt
+  create: async (debtData) => {
+    const response = await apiCall('/api/debts', {
+      method: 'POST',
+      body: JSON.stringify(debtData),
+    });
+    
+    if (response && response.ok) {
+      const data = await response.json();
+      return data;
+    }
+    
+    const error = await response?.json();
+    if (error?.details) {
+      throw new Error(error.details.join(', '));
+    }
+    throw new Error(error?.error || 'Failed to create debt');
+  },
+
+  // Update debt
+  update: async (id, debtData) => {
+    const response = await apiCall(`/api/debts/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(debtData),
+    });
+    
+    if (response && response.ok) {
+      const data = await response.json();
+      return data;
+    }
+    
+    const error = await response?.json();
+    if (error?.details) {
+      throw new Error(error.details.join(', '));
+    }
+    throw new Error(error?.error || 'Failed to update debt');
+  },
+
+  // Delete debt
+  delete: async (id) => {
+    const response = await apiCall(`/api/debts/${id}`, {
+      method: 'DELETE',
+    });
+    
+    if (response && response.ok) {
+      const data = await response.json();
+      return data;
+    }
+    
+    const error = await response?.json();
+    throw new Error(error?.error || 'Failed to delete debt');
+  },
+
+  // Add payment to debt
+  addPayment: async (id, paymentData) => {
+    const response = await apiCall(`/api/debts/${id}/payment`, {
+      method: 'POST',
+      body: JSON.stringify(paymentData),
+    });
+    
+    if (response && response.ok) {
+      const data = await response.json();
+      return data;
+    }
+    
+    const error = await response?.json();
+    throw new Error(error?.error || 'Failed to add payment');
+  },
+};
 export const investmentAPI = createAPI('investments');
 export const budgetAPI = createAPI('budgets');
 
@@ -626,5 +728,220 @@ export const incomeHelpers = {
       { value: 'cheque', label: 'Cheque', icon: '📄' },
       { value: 'other', label: 'Other', icon: '💰' }
     ];
+  }
+};
+
+// Debt helper functions
+export const debtHelpers = {
+  // Format currency amount
+  formatCurrency: (amount, currency = 'INR') => {
+    const currencySymbols = {
+      'INR': '₹',
+      'USD': '$',
+      'EUR': '€',
+      'GBP': '£',
+      'AUD': 'A$',
+      'CAD': 'C$'
+    };
+    
+    const symbol = currencySymbols[currency] || currency;
+    return `${symbol}${amount.toLocaleString()}`;
+  },
+
+  // Format date for display
+  formatDate: (date) => {
+    return new Date(date).toLocaleDateString('en-IN', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  },
+
+  // Get debt type info
+  getDebtTypeInfo: (type) => {
+    const types = {
+      'credit-card': { label: 'Credit Card', icon: '💳', color: 'red' },
+      'personal-loan': { label: 'Personal Loan', icon: '💰', color: 'orange' },
+      'education-loan': { label: 'Education Loan', icon: '🎓', color: 'blue' },
+      'auto-loan': { label: 'Auto Loan', icon: '🚗', color: 'green' },
+      'home-loan': { label: 'Home Loan', icon: '🏠', color: 'purple' },
+      'family-borrowing': { label: 'Family Borrowing', icon: '👨‍👩‍👧‍👦', color: 'pink' },
+      'other': { label: 'Other', icon: '📄', color: 'gray' }
+    };
+    
+    return types[type] || types['other'];
+  },
+
+  // Get status info
+  getStatusInfo: (status) => {
+    const statuses = {
+      'active': { label: 'Active', color: 'green', bgColor: 'bg-green-100', textColor: 'text-green-700' },
+      'closed': { label: 'Closed', color: 'blue', bgColor: 'bg-blue-100', textColor: 'text-blue-700' },
+      'defaulted': { label: 'Defaulted', color: 'red', bgColor: 'bg-red-100', textColor: 'text-red-700' }
+    };
+    
+    return statuses[status] || statuses['active'];
+  },
+
+  // Get repayment frequency info
+  getFrequencyInfo: (frequency) => {
+    const frequencies = {
+      'weekly': { label: 'Weekly', multiplier: 52 },
+      'bi-weekly': { label: 'Bi-weekly', multiplier: 26 },
+      'monthly': { label: 'Monthly', multiplier: 12 }
+    };
+    
+    return frequencies[frequency] || frequencies['monthly'];
+  },
+
+  // Calculate progress percentage
+  calculateProgress: (originalAmount, currentBalance) => {
+    if (originalAmount <= 0) return 0;
+    const paidAmount = originalAmount - currentBalance;
+    return Math.round((paidAmount / originalAmount) * 100);
+  },
+
+  // Calculate total paid
+  calculateTotalPaid: (originalAmount, currentBalance) => {
+    return Math.max(0, originalAmount - currentBalance);
+  },
+
+  // Get reminder mode info
+  getReminderModeInfo: (mode) => {
+    const modes = {
+      'day-before': { label: 'Day Before', description: 'Remind 1 day before due date' },
+      'on-day': { label: 'On Due Date', description: 'Remind on the due date' },
+      'custom': { label: 'Custom', description: 'Custom reminder days' }
+    };
+    
+    return modes[mode] || modes['day-before'];
+  },
+
+  // Get available debt types
+  getDebtTypes: () => {
+    return [
+      { value: 'credit-card', label: 'Credit Card', icon: '💳' },
+      { value: 'personal-loan', label: 'Personal Loan', icon: '💰' },
+      { value: 'education-loan', label: 'Education Loan', icon: '🎓' },
+      { value: 'auto-loan', label: 'Auto Loan', icon: '🚗' },
+      { value: 'home-loan', label: 'Home Loan', icon: '🏠' },
+      { value: 'family-borrowing', label: 'Family Borrowing', icon: '👨‍👩‍👧‍👦' },
+      { value: 'other', label: 'Other', icon: '📄' }
+    ];
+  },
+
+  // Get available statuses
+  getStatuses: () => {
+    return [
+      { value: 'active', label: 'Active' },
+      { value: 'closed', label: 'Closed' },
+      { value: 'defaulted', label: 'Defaulted' }
+    ];
+  },
+
+  // Get available repayment frequencies
+  getRepaymentFrequencies: () => {
+    return [
+      { value: 'weekly', label: 'Weekly' },
+      { value: 'bi-weekly', label: 'Bi-weekly' },
+      { value: 'monthly', label: 'Monthly' }
+    ];
+  },
+
+  // Get available reminder modes
+  getReminderModes: () => {
+    return [
+      { value: 'day-before', label: 'Day Before Due Date' },
+      { value: 'on-day', label: 'On Due Date' },
+      { value: 'custom', label: 'Custom Days Before' }
+    ];
+  },
+
+  // Group debts by type
+  groupByType: (debts) => {
+    return debts.reduce((groups, debt) => {
+      const type = debt.type;
+      if (!groups[type]) {
+        groups[type] = [];
+      }
+      groups[type].push(debt);
+      return groups;
+    }, {});
+  },
+
+  // Group debts by status
+  groupByStatus: (debts) => {
+    return debts.reduce((groups, debt) => {
+      const status = debt.status;
+      if (!groups[status]) {
+        groups[status] = [];
+      }
+      groups[status].push(debt);
+      return groups;
+    }, {});
+  },
+
+  // Calculate estimated payoff date
+  calculatePayoffDate: (currentBalance, minimumPayment, interestRate, repaymentFrequency = 'monthly') => {
+    if (currentBalance <= 0 || minimumPayment <= 0) {
+      return null;
+    }
+
+    const monthlyRate = interestRate / 100 / 12;
+    let paymentsPerMonth;
+    
+    switch (repaymentFrequency) {
+      case 'weekly':
+        paymentsPerMonth = 52 / 12;
+        break;
+      case 'bi-weekly':
+        paymentsPerMonth = 26 / 12;
+        break;
+      case 'monthly':
+      default:
+        paymentsPerMonth = 1;
+        break;
+    }
+
+    const adjustedPayment = minimumPayment * paymentsPerMonth;
+    
+    if (monthlyRate === 0) {
+      // No interest case
+      const months = currentBalance / adjustedPayment;
+      const payoffDate = new Date();
+      payoffDate.setMonth(payoffDate.getMonth() + Math.ceil(months));
+      return payoffDate;
+    }
+
+    // With interest calculation
+    const months = -Math.log(1 - (currentBalance * monthlyRate) / adjustedPayment) / Math.log(1 + monthlyRate);
+    
+    if (!isFinite(months) || months <= 0) {
+      return null;
+    }
+
+    const payoffDate = new Date();
+    payoffDate.setMonth(payoffDate.getMonth() + Math.ceil(months));
+    return payoffDate;
+  },
+
+  // Get days until due date
+  getDaysUntilDue: (dueDay) => {
+    const today = new Date();
+    const currentDay = today.getDate();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+    
+    let dueDate = new Date(currentYear, currentMonth, dueDay);
+    
+    // If due date has passed this month, move to next month
+    if (dueDate < today) {
+      dueDate = new Date(currentYear, currentMonth + 1, dueDay);
+    }
+    
+    const diffTime = dueDate - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    return diffDays;
   }
 };

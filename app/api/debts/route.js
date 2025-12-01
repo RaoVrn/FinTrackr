@@ -20,7 +20,7 @@ async function getUserFromToken(request) {
   }
 }
 
-// GET - Fetch all debts for user
+// GET - Fetch all debts for user with enhanced filtering and summary
 export async function GET(request) {
   try {
     await connectDB();
@@ -29,8 +29,10 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type');
     const status = searchParams.get('status');
+    const category = searchParams.get('category');
+    const search = searchParams.get('search');
     
-    let query = { user: userId };
+    let query = { userId: userId };
     
     // Add filters if provided
     if (type && type !== 'all') {
@@ -41,14 +43,43 @@ export async function GET(request) {
       query.status = status;
     }
     
+    if (category && category !== 'all') {
+      query.category = category;
+    }
+    
+    // Add search functionality
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { creditor: { $regex: search, $options: 'i' } }
+      ];
+    }
+    
     const debts = await Debt.find(query)
       .sort({ createdAt: -1 })
       .lean();
     
+    // Calculate summary statistics
+    const totalDebt = debts.reduce((sum, debt) => sum + debt.currentBalance, 0);
+    const totalOriginal = debts.reduce((sum, debt) => sum + debt.originalAmount, 0);
+    const totalPaid = totalOriginal - totalDebt;
+    const activeDebts = debts.filter(debt => debt.status === 'active').length;
+    const avgProgress = debts.length > 0 ? 
+      debts.reduce((sum, debt) => {
+        const progress = debt.originalAmount > 0 ? ((debt.originalAmount - debt.currentBalance) / debt.originalAmount * 100) : 0;
+        return sum + progress;
+      }, 0) / debts.length : 0;
+    
     return NextResponse.json({ 
       success: true, 
       debts,
-      count: debts.length
+      summary: {
+        totalDebt,
+        totalPaid,
+        activeDebts,
+        avgProgress: Math.round(avgProgress * 10) / 10,
+        count: debts.length
+      }
     });
   } catch (error) {
     console.error('Error fetching debts:', error);
@@ -59,7 +90,7 @@ export async function GET(request) {
   }
 }
 
-// POST - Create new debt
+// POST - Create new debt with enhanced validation
 export async function POST(request) {
   try {
     await connectDB();
@@ -68,11 +99,37 @@ export async function POST(request) {
     const body = await request.json();
     
     // Validate required fields
-    const { title, type, totalAmount, remainingAmount, interestRate, monthlyPayment, minimumPayment, dueDate, startDate, creditor } = body;
+    const { 
+      name, 
+      creditor, 
+      type, 
+      originalAmount, 
+      currentBalance, 
+      interestRate, 
+      minimumPayment, 
+      startDate, 
+      dueDay 
+    } = body;
     
-    if (!title || !type || !totalAmount || remainingAmount === undefined || !interestRate || !monthlyPayment || !minimumPayment || !dueDate || !startDate || !creditor) {
+    if (!name || !creditor || !type || originalAmount === undefined || currentBalance === undefined || 
+        interestRate === undefined || minimumPayment === undefined || !startDate || dueDay === undefined) {
       return NextResponse.json(
         { success: false, error: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+    
+    // Additional validation
+    if (originalAmount <= 0 || currentBalance < 0 || interestRate < 0 || minimumPayment < 0) {
+      return NextResponse.json(
+        { success: false, error: 'Financial amounts must be positive' },
+        { status: 400 }
+      );
+    }
+    
+    if (currentBalance > originalAmount) {
+      return NextResponse.json(
+        { success: false, error: 'Current balance cannot exceed original amount' },
         { status: 400 }
       );
     }
@@ -83,6 +140,12 @@ export async function POST(request) {
     };
     
     const debt = new Debt(debtData);
+    
+    // Calculate expected payoff date if not provided
+    if (!debt.expectedPayoffDate) {
+      debt.expectedPayoffDate = debt.calculatePayoffDate();
+    }
+    
     await debt.save();
     
     return NextResponse.json({ 
