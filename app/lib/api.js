@@ -247,8 +247,108 @@ const createAPI = (endpoint) => ({
   },
 });
 
-// New API endpoints
-export const incomeAPI = createAPI('income');
+// Enhanced Income API with additional endpoints
+export const incomeAPI = {
+  // Get all incomes with advanced filtering
+  getAll: async (params = {}) => {
+    const queryParams = new URLSearchParams();
+    Object.keys(params).forEach(key => {
+      if (params[key] !== null && params[key] !== undefined) {
+        queryParams.set(key, params[key].toString());
+      }
+    });
+
+    const url = `/api/income${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    
+    const response = await apiCall(url);
+    if (response && response.ok) {
+      const data = await response.json();
+      return data.success ? data : { success: false, error: data.error };
+    }
+    
+    const error = await response?.json();
+    throw new Error(error?.error || 'Failed to fetch incomes');
+  },
+
+  // Get income summary statistics
+  getSummary: async () => {
+    const response = await apiCall('/api/income/summary');
+    if (response && response.ok) {
+      const data = await response.json();
+      return data.success ? data.summary : null;
+    }
+    
+    const error = await response?.json();
+    throw new Error(error?.error || 'Failed to fetch income summary');
+  },
+
+  // Get single income by ID
+  getById: async (id) => {
+    const response = await apiCall(`/api/income/${id}`);
+    if (response && response.ok) {
+      const data = await response.json();
+      return data.success ? data.income : null;
+    }
+    
+    const error = await response?.json();
+    throw new Error(error?.error || 'Failed to fetch income');
+  },
+
+  // Create new income
+  create: async (incomeData) => {
+    const response = await apiCall('/api/income', {
+      method: 'POST',
+      body: JSON.stringify(incomeData),
+    });
+    
+    if (response && response.ok) {
+      const data = await response.json();
+      return data;
+    }
+    
+    const error = await response?.json();
+    if (error?.details) {
+      throw new Error(error.details.join(', '));
+    }
+    throw new Error(error?.error || 'Failed to create income');
+  },
+
+  // Update income
+  update: async (id, incomeData) => {
+    const response = await apiCall(`/api/income/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(incomeData),
+    });
+    
+    if (response && response.ok) {
+      const data = await response.json();
+      return data;
+    }
+    
+    const error = await response?.json();
+    if (error?.details) {
+      throw new Error(error.details.join(', '));
+    }
+    throw new Error(error?.error || 'Failed to update income');
+  },
+
+  // Delete income
+  delete: async (id) => {
+    const response = await apiCall(`/api/income/${id}`, {
+      method: 'DELETE',
+    });
+    
+    if (response && response.ok) {
+      const data = await response.json();
+      return data;
+    }
+    
+    const error = await response?.json();
+    throw new Error(error?.error || 'Failed to delete income');
+  },
+};
+
+// Other API endpoints
 export const debtAPI = createAPI('debts');
 export const investmentAPI = createAPI('investments');
 export const budgetAPI = createAPI('budgets');
@@ -395,6 +495,136 @@ export const expenseHelpers = {
       'Travel',
       'Gifts',
       'Other'
+    ];
+  }
+};
+
+// Income helper functions
+export const incomeHelpers = {
+  // Format currency amount
+  formatCurrency: (amount, currency = 'INR') => {
+    const currencySymbols = {
+      'INR': '₹',
+      'USD': '$',
+      'EUR': '€',
+      'GBP': '£',
+      'AUD': 'A$',
+      'CAD': 'C$'
+    };
+    
+    const symbol = currencySymbols[currency] || currency;
+    return `${symbol}${amount.toLocaleString()}`;
+  },
+
+  // Format date for display
+  formatDate: (date) => {
+    return new Date(date).toLocaleDateString('en-IN', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  },
+
+  // Get category icon
+  getCategoryIcon: (category) => {
+    const icons = {
+      'salary': '💼',
+      'allowance': '💳',
+      'freelance': '💻',
+      'bonus': '🎁',
+      'gift': '🎀',
+      'rental': '🏠',
+      'other': '💵'
+    };
+    
+    return icons[category?.toLowerCase()] || '💵';
+  },
+
+  // Get payment method icon
+  getPaymentMethodIcon: (method) => {
+    const icons = {
+      'bank-transfer': '🏦',
+      'cash': '💵',
+      'upi': '📱',
+      'paypal': '💳',
+      'cheque': '📄',
+      'other': '💰'
+    };
+    
+    return icons[method?.toLowerCase()] || '💰';
+  },
+
+  // Get frequency badge info
+  getFrequencyInfo: (frequency) => {
+    const info = {
+      'one-time': { label: 'One-time', color: 'gray' },
+      'weekly': { label: 'Weekly', color: 'blue' },
+      'monthly': { label: 'Monthly', color: 'purple' }
+    };
+    
+    return info[frequency?.toLowerCase()] || info['one-time'];
+  },
+
+  // Calculate total from incomes array
+  calculateTotal: (incomes) => {
+    return incomes.reduce((sum, income) => sum + (income.amount || 0), 0);
+  },
+
+  // Group incomes by category
+  groupByCategory: (incomes) => {
+    return incomes.reduce((groups, income) => {
+      const category = income.category;
+      if (!groups[category]) {
+        groups[category] = [];
+      }
+      groups[category].push(income);
+      return groups;
+    }, {});
+  },
+
+  // Group incomes by date
+  groupByDate: (incomes) => {
+    return incomes.reduce((groups, income) => {
+      const date = new Date(income.date || income.createdAt).toISOString().split('T')[0];
+      if (!groups[date]) {
+        groups[date] = [];
+      }
+      groups[date].push(income);
+      return groups;
+    }, {});
+  },
+
+  // Get available income categories
+  getIncomeCategories: () => {
+    return [
+      { value: 'salary', label: 'Salary', icon: '💼' },
+      { value: 'allowance', label: 'Allowance', icon: '💳' },
+      { value: 'freelance', label: 'Freelance', icon: '💻' },
+      { value: 'bonus', label: 'Bonus', icon: '🎁' },
+      { value: 'gift', label: 'Gift', icon: '🎀' },
+      { value: 'rental', label: 'Rental', icon: '🏠' },
+      { value: 'other', label: 'Other', icon: '💵' }
+    ];
+  },
+
+  // Get available frequencies
+  getFrequencies: () => {
+    return [
+      { value: 'one-time', label: 'One-time' },
+      { value: 'weekly', label: 'Weekly' },
+      { value: 'monthly', label: 'Monthly' }
+    ];
+  },
+
+  // Get available payment methods
+  getPaymentMethods: () => {
+    return [
+      { value: 'bank-transfer', label: 'Bank Transfer', icon: '🏦' },
+      { value: 'cash', label: 'Cash', icon: '💵' },
+      { value: 'upi', label: 'UPI', icon: '📱' },
+      { value: 'paypal', label: 'PayPal', icon: '💳' },
+      { value: 'cheque', label: 'Cheque', icon: '📄' },
+      { value: 'other', label: 'Other', icon: '💰' }
     ];
   }
 };

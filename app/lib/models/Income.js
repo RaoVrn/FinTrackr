@@ -10,12 +10,13 @@ const incomeSchema = new mongoose.Schema({
   amount: {
     type: Number,
     required: [true, 'Amount is required'],
-    min: [0, 'Amount must be positive']
+    min: [0.01, 'Amount must be greater than 0']
   },
   category: {
     type: String,
     required: [true, 'Category is required'],
-    enum: ['Salary', 'Freelance', 'Business', 'Investment', 'Rental', 'Passive', 'Other']
+    enum: ['salary', 'allowance', 'freelance', 'bonus', 'gift', 'rental', 'other'],
+    lowercase: true
   },
   source: {
     type: String,
@@ -23,45 +24,79 @@ const incomeSchema = new mongoose.Schema({
     trim: true,
     maxLength: [100, 'Source cannot exceed 100 characters']
   },
+  date: {
+    type: Date,
+    required: [true, 'Date is required'],
+    default: Date.now
+  },
+  time: {
+    type: String,
+    validate: {
+      validator: function(v) {
+        if (!v) return true; // Optional field
+        return /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(v);
+      },
+      message: 'Time must be in HH:MM format'
+    }
+  },
   frequency: {
     type: String,
     required: [true, 'Frequency is required'],
-    enum: ['One-time', 'Daily', 'Weekly', 'Monthly', 'Quarterly', 'Yearly'],
-    default: 'One-time'
+    enum: ['one-time', 'monthly', 'weekly'],
+    default: 'one-time',
+    lowercase: true
   },
   isRecurring: {
     type: Boolean,
     default: false
   },
-  nextOccurrence: {
-    type: Date
-  },
-  description: {
+  paymentMethod: {
     type: String,
-    trim: true,
-    maxLength: [500, 'Description cannot exceed 500 characters']
+    enum: ['bank-transfer', 'cash', 'upi', 'paypal', 'cheque', 'other'],
+    lowercase: true
   },
   tags: [{
     type: String,
     trim: true
   }],
+  description: {
+    type: String,
+    trim: true,
+    maxLength: [500, 'Description cannot exceed 500 characters']
+  },
+  attachmentUrl: {
+    type: String,
+    validate: {
+      validator: function(v) {
+        if (!v) return true; // Optional field
+        return /^https?:\/\/.+/.test(v);
+      },
+      message: 'Attachment URL must be a valid URL'
+    }
+  },
   userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+    type: String,
+    required: [true, 'User ID is required'],
+    index: true
+  },
+  nextOccurrence: {
+    type: Date
   },
   isActive: {
     type: Boolean,
     default: true
   }
 }, {
-  timestamps: true
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
 });
 
-// Index for faster queries
-incomeSchema.index({ user: 1, createdAt: -1 });
-incomeSchema.index({ user: 1, category: 1 });
-incomeSchema.index({ user: 1, isRecurring: 1 });
+// Indexes for better performance
+incomeSchema.index({ userId: 1, createdAt: -1 });
+incomeSchema.index({ userId: 1, category: 1 });
+incomeSchema.index({ userId: 1, isRecurring: 1 });
+incomeSchema.index({ userId: 1, date: -1 });
 
 // Virtual for formatted amount
 incomeSchema.virtual('formattedAmount').get(function() {
@@ -73,16 +108,13 @@ incomeSchema.methods.calculateNextOccurrence = function() {
   if (!this.isRecurring) return null;
   
   const frequencies = {
-    'Daily': 1,
-    'Weekly': 7,
-    'Monthly': 30,
-    'Quarterly': 90,
-    'Yearly': 365
+    'weekly': 7,
+    'monthly': 30
   };
   
   const days = frequencies[this.frequency];
   if (days) {
-    const nextDate = new Date();
+    const nextDate = new Date(this.date);
     nextDate.setDate(nextDate.getDate() + days);
     return nextDate;
   }
@@ -90,11 +122,16 @@ incomeSchema.methods.calculateNextOccurrence = function() {
   return null;
 };
 
-// Pre-save middleware to set next occurrence
+// Pre-save middleware to automatically set isRecurring and next occurrence
 incomeSchema.pre('save', function(next) {
+  // Auto-set isRecurring based on frequency
+  this.isRecurring = this.frequency !== 'one-time';
+  
+  // Set next occurrence for recurring income
   if (this.isRecurring && !this.nextOccurrence) {
     this.nextOccurrence = this.calculateNextOccurrence();
   }
+  
   next();
 });
 
