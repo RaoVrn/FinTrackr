@@ -68,19 +68,12 @@ export async function GET(request) {
       ];
     }
 
-    console.log('Budget API - Filter:', JSON.stringify(filter));
-    
     // Simple, robust query without optimization hints that might cause issues
     const budgets = await Budget.find(filter)
       .sort({ createdAt: -1 })
       .limit(limit)
       .skip(skip)
       .lean(false); // Keep lean false for fresh data
-
-    console.log(`Budget API - Found ${budgets.length} budgets for user ${userId}`);
-    budgets.forEach(budget => {
-      console.log(`  Budget: "${budget.name}" (${budget.category}) - ₹${budget.spent || 0}/₹${budget.amount}`);
-    });
 
     // Get total count for pagination
     const totalCount = await Budget.countDocuments(filter);

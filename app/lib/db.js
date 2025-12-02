@@ -11,8 +11,7 @@ export async function connectDB() {
     });
 
     isConnected = conn.connections[0].readyState;
-    console.log("MongoDB Connected");
   } catch (error) {
-    console.log("MongoDB connection error:", error);
+    // MongoDB connection error handled silently
   }
 }

@@ -202,7 +202,7 @@ export async function PUT(request) {
         );
       }
       
-      const debt = await Debt.findOne({ _id: id, user: userId });
+      const debt = await Debt.findOne({ _id: id, userId: userId });
       if (!debt) {
         return NextResponse.json(
           { success: false, error: 'Debt not found' },
@@ -226,7 +226,7 @@ export async function PUT(request) {
     } else {
       // Regular update
       const debt = await Debt.findOneAndUpdate(
-        { _id: id, user: userId },
+        { _id: id, userId: userId },
         updateData,
         { new: true, runValidators: true }
       );
@@ -282,7 +282,7 @@ export async function DELETE(request) {
       );
     }
     
-    const debt = await Debt.findOneAndDelete({ _id: id, user: userId });
+    const debt = await Debt.findOneAndDelete({ _id: id, userId: userId });
     
     if (!debt) {
       return NextResponse.json(

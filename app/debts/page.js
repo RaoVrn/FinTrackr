@@ -91,6 +91,18 @@ function DebtsContent() {
     }
   };
 
+  const handleUpdate = async (debtId, updateData) => {
+    try {
+      console.log('Updating debt:', { debtId, updateData });
+      const result = await debtAPI.update(debtId, updateData);
+      console.log('Update result:', result);
+      fetchDebts(); // Refresh the list
+    } catch (error) {
+      console.error('Error updating debt:', error);
+      throw error;
+    }
+  };
+
   const handleFilterChange = (filterType, value) => {
     setFilters(prev => ({
       ...prev,
@@ -268,6 +280,7 @@ function DebtsContent() {
                     debt={debt}
                     onDelete={() => handleDelete(debt._id)}
                     onAddPayment={(paymentData) => handleAddPayment(debt._id, paymentData)}
+                    onUpdate={handleUpdate}
                   />
                 ))}
               </div>
@@ -311,9 +324,21 @@ export default function DebtsPage() {
   );
 }
 
-function DebtCard({ debt, onDelete, onAddPayment }) {
+function DebtCard({ debt, onDelete, onAddPayment, onUpdate }) {
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: debt.name,
+    creditor: debt.creditor,
+    type: debt.type,
+    originalAmount: debt.originalAmount,
+    currentBalance: debt.currentBalance,
+    interestRate: debt.interestRate,
+    minimumPayment: debt.minimumPayment,
+    dueDay: debt.dueDay,
+    description: debt.description
+  });
   const router = useRouter();
 
   const progress = debtHelpers.calculateProgress(debt.originalAmount, debt.currentBalance);
@@ -384,6 +409,78 @@ function DebtCard({ debt, onDelete, onAddPayment }) {
     }
   };
 
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      // Validate required fields
+      if (!editForm.name || !editForm.creditor || !editForm.type) {
+        alert('Please fill in all required fields (Name, Creditor, Type)');
+        return;
+      }
+
+      // Validate numeric fields
+      const originalAmount = parseFloat(editForm.originalAmount);
+      const currentBalance = parseFloat(editForm.currentBalance);
+      const interestRate = parseFloat(editForm.interestRate);
+      const minimumPayment = parseFloat(editForm.minimumPayment);
+      const dueDay = parseInt(editForm.dueDay);
+
+      if (isNaN(originalAmount) || originalAmount <= 0) {
+        alert('Original amount must be a positive number');
+        return;
+      }
+
+      if (isNaN(currentBalance) || currentBalance < 0) {
+        alert('Current balance must be a non-negative number');
+        return;
+      }
+
+      if (isNaN(interestRate) || interestRate < 0) {
+        alert('Interest rate must be a non-negative number');
+        return;
+      }
+
+      if (isNaN(minimumPayment) || minimumPayment < 0) {
+        alert('Minimum payment must be a non-negative number');
+        return;
+      }
+
+      if (isNaN(dueDay) || dueDay < 1 || dueDay > 31) {
+        alert('Due day must be between 1 and 31');
+        return;
+      }
+
+      if (currentBalance > originalAmount) {
+        alert('Current balance cannot exceed original amount');
+        return;
+      }
+
+      await onUpdate(debt._id, {
+        name: editForm.name.trim(),
+        creditor: editForm.creditor.trim(),
+        type: editForm.type,
+        originalAmount,
+        currentBalance,
+        interestRate,
+        minimumPayment,
+        dueDay,
+        description: editForm.description?.trim() || ''
+      });
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error updating debt:', error);
+      alert(`Failed to update debt: ${error.message}`);
+    }
+  };
+
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+    setEditForm(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
   return (
     <div className="relative bg-white p-3 rounded-lg border border-gray-100 hover:shadow-md transition-shadow">
       <div className={`absolute left-0 top-0 w-1 h-full bg-gradient-to-b ${getCategoryColor(debt.type)} rounded-l-lg`}></div>
@@ -394,13 +491,60 @@ function DebtCard({ debt, onDelete, onAddPayment }) {
             {getDebtIcon(debt.type)}
           </div>
           <div className="flex-1">
-            <div className="flex items-center space-x-3 mb-1">
-              <h3 className="text-base font-semibold text-gray-900">{debt.name}</h3>
-              {getStatusBadge(debt.status)}
-            </div>
-            <p className="text-sm text-gray-600 mb-1 capitalize">{debt.type?.replace('-', ' ')} • {debt.creditor}</p>
-            {debt.description && (
-              <p className="text-sm text-gray-500">{debt.description}</p>
+            {isEditing ? (
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  name="name"
+                  value={editForm.name}
+                  onChange={handleEditChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-base font-semibold focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  placeholder="Debt name"
+                />
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    name="creditor"
+                    value={editForm.creditor}
+                    onChange={handleEditChange}
+                    className="flex-1 px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    placeholder="Creditor"
+                  />
+                  <select
+                    name="type"
+                    value={editForm.type}
+                    onChange={handleEditChange}
+                    className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  >
+                    <option value="credit-card">Credit Card</option>
+                    <option value="personal-loan">Personal Loan</option>
+                    <option value="education-loan">Education Loan</option>
+                    <option value="auto-loan">Auto Loan</option>
+                    <option value="home-loan">Home Loan</option>
+                    <option value="family-borrowing">Family Borrowing</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <textarea
+                  name="description"
+                  value={editForm.description}
+                  onChange={handleEditChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  placeholder="Description (optional)"
+                  rows="2"
+                />
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center space-x-3 mb-1">
+                  <h3 className="text-base font-semibold text-gray-900">{debt.name}</h3>
+                  {getStatusBadge(debt.status)}
+                </div>
+                <p className="text-sm text-gray-600 mb-1 capitalize">{debt.type?.replace('-', ' ')} • {debt.creditor}</p>
+                {debt.description && (
+                  <p className="text-sm text-gray-500">{debt.description}</p>
+                )}
+              </>
             )}
             <div className="flex items-center space-x-4 mt-2">
               {debt.interestRate && (
@@ -428,41 +572,142 @@ function DebtCard({ debt, onDelete, onAddPayment }) {
         </div>
         
         <div className="text-right ml-4">
-          <p className="text-2xl font-bold text-red-600 mb-1">
-            {debtHelpers.formatCurrency(debt.currentBalance)}
-          </p>
-          <p className="text-sm text-gray-500">
-            of {debtHelpers.formatCurrency(debt.originalAmount)}
-          </p>
-          {debt.dueDay && (
-            <p className="text-xs text-orange-600 mt-1">
-              Due day: {debt.dueDay}
-            </p>
+          {isEditing ? (
+            <div className="space-y-2 min-w-[200px]">
+              <div>
+                <label className="text-xs text-gray-500 block">Current Balance</label>
+                <input
+                  type="number"
+                  name="currentBalance"
+                  value={editForm.currentBalance}
+                  onChange={handleEditChange}
+                  className="w-full px-3 py-1 border border-gray-300 rounded-lg text-lg font-bold text-red-600 focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  step="0.01"
+                  min="0"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 block">Original Amount</label>
+                <input
+                  type="number"
+                  name="originalAmount"
+                  value={editForm.originalAmount}
+                  onChange={handleEditChange}
+                  className="w-full px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  step="0.01"
+                  min="0"
+                />
+              </div>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label className="text-xs text-gray-500 block">Interest %</label>
+                  <input
+                    type="number"
+                    name="interestRate"
+                    value={editForm.interestRate}
+                    onChange={handleEditChange}
+                    className="w-full px-2 py-1 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    step="0.01"
+                    min="0"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="text-xs text-gray-500 block">Min Payment</label>
+                  <input
+                    type="number"
+                    name="minimumPayment"
+                    value={editForm.minimumPayment}
+                    onChange={handleEditChange}
+                    className="w-full px-2 py-1 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    step="0.01"
+                    min="0"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 block">Due Day</label>
+                <input
+                  type="number"
+                  name="dueDay"
+                  value={editForm.dueDay}
+                  onChange={handleEditChange}
+                  className="w-full px-3 py-1 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  min="1"
+                  max="31"
+                />
+              </div>
+            </div>
+          ) : (
+            <>
+              <p className="text-2xl font-bold text-red-600 mb-1">
+                {debtHelpers.formatCurrency(debt.currentBalance)}
+              </p>
+              <p className="text-sm text-gray-500">
+                of {debtHelpers.formatCurrency(debt.originalAmount)}
+              </p>
+              {debt.dueDay && (
+                <p className="text-xs text-orange-600 mt-1">
+                  Due day: {debt.dueDay}
+                </p>
+              )}
+            </>
           )}
         </div>
       </div>
 
       <div className="flex justify-end mt-4 space-x-2">
-        {debt.status === 'active' && (
-          <button 
-            onClick={() => setShowPaymentForm(!showPaymentForm)}
-            className="px-4 py-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors font-medium"
-          >
-            Add Payment
-          </button>
+        {isEditing ? (
+          <>
+            <button 
+              onClick={handleEditSubmit}
+              className="px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-lg transition-colors font-medium"
+            >
+              Save Changes
+            </button>
+            <button 
+              onClick={() => {
+                setIsEditing(false);
+                setEditForm({
+                  name: debt.name,
+                  creditor: debt.creditor,
+                  type: debt.type,
+                  originalAmount: debt.originalAmount,
+                  currentBalance: debt.currentBalance,
+                  interestRate: debt.interestRate,
+                  minimumPayment: debt.minimumPayment,
+                  dueDay: debt.dueDay,
+                  description: debt.description
+                });
+              }}
+              className="px-4 py-2 bg-gray-500 text-white hover:bg-gray-600 rounded-lg transition-colors font-medium"
+            >
+              Cancel
+            </button>
+          </>
+        ) : (
+          <>
+            {debt.status === 'active' && (
+              <button 
+                onClick={() => setShowPaymentForm(!showPaymentForm)}
+                className="px-4 py-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors font-medium"
+              >
+                Add Payment
+              </button>
+            )}
+            <button 
+              onClick={() => setIsEditing(true)}
+              className="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors font-medium"
+            >
+              Edit
+            </button>
+            <button 
+              onClick={onDelete}
+              className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors font-medium"
+            >
+              Delete
+            </button>
+          </>
         )}
-        <button 
-          onClick={() => router.push(`/debts/edit/${debt._id}`)}
-          className="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors font-medium"
-        >
-          Edit
-        </button>
-        <button 
-          onClick={onDelete}
-          className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors font-medium"
-        >
-          Delete
-        </button>
       </div>
 
       {/* Simplified Payment Form */}

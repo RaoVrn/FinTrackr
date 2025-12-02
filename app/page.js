@@ -9,7 +9,7 @@ export default function Home() {
     {
       icon: '📊',
       title: 'Smart Analytics',
-      description: 'Get detailed insights into your spending patterns with beautiful charts and reports.'
+      description: 'Get detailed insights into your spending patterns with beautiful charts and analytics.'
     },
     {
       icon: '💰',

@@ -29,8 +29,6 @@ export async function POST(request) {
     const decoded = verifyToken(request);
     const userId = decoded.userId;
 
-    console.log(`Starting expense sync for user: ${userId}`);
-
     // Get all budgets for this user (active by default or explicitly active)
     const budgets = await Budget.find({ 
       userId,
@@ -40,17 +38,8 @@ export async function POST(request) {
       ]
     });
 
-    console.log(`Found ${budgets.length} active budgets`);
-    budgets.forEach(budget => {
-      console.log(`Budget: "${budget.category}" from ${budget.startDate} to ${budget.endDate}`);
-    });
-
     // Get all expenses for this user for debugging
     const allExpenses = await Expense.find({ userId });
-    console.log(`Found ${allExpenses.length} total expenses for user`);
-    allExpenses.forEach(expense => {
-      console.log(`All Expense: "${expense.category}" - ₹${expense.amount} on ${expense.date.toISOString().split('T')[0]}`);
-    });
     
     // Also check if there are expenses outside current month
     const currentMonth = new Date();
@@ -61,8 +50,6 @@ export async function POST(request) {
       userId,
       date: { $gte: startOfMonth, $lte: endOfMonth }
     });
-    console.log(`Found ${expensesThisMonth.length} expenses in current month (${startOfMonth.toISOString().split('T')[0]} to ${endOfMonth.toISOString().split('T')[0]})`);
-
     // Reset all budget spent amounts to 0
     await Budget.updateMany(
       { 
@@ -81,8 +68,6 @@ export async function POST(request) {
 
     // For each budget, find matching expenses and recalculate spent amount
     for (const budget of budgets) {
-      console.log(`Processing budget: "${budget.category}" (${budget.startDate} to ${budget.endDate})`);
-      
       // Find expenses that match this budget's category and date range
       // Create multiple search patterns for better matching
       const searchPatterns = [
@@ -117,8 +102,6 @@ export async function POST(request) {
         searchPatterns.push({ category: 'groceries' });
       }
       
-      console.log(`Searching for expenses with patterns:`, searchPatterns.map(p => p.category));
-      
       // Get all expenses in date range for debugging
       const allExpensesInRange = await Expense.find({
         userId,
@@ -128,10 +111,7 @@ export async function POST(request) {
         }
       });
       
-      console.log(`Found ${allExpensesInRange.length} total expenses in date range:`);
-      allExpensesInRange.forEach(exp => {
-        console.log(`  Expense: "${exp.category}" = ₹${exp.amount} on ${exp.date.toISOString().split('T')[0]}`);
-      });
+
       
       const matchingExpenses = await Expense.find({
         userId,
@@ -146,10 +126,7 @@ export async function POST(request) {
         ]
       });
 
-      console.log(`Matched ${matchingExpenses.length} expenses for budget "${budget.category}":`);
-      matchingExpenses.forEach(exp => {
-        console.log(`  MATCHED: "${exp.category}" = ₹${exp.amount} on ${exp.date.toISOString().split('T')[0]}`);
-      });
+
 
       if (matchingExpenses.length > 0) {
         // Calculate total spent for this budget
@@ -185,7 +162,6 @@ export async function POST(request) {
           status: budget.status
         });
         
-        console.log(`Updated ${budget.category} budget: ₹${totalSpent} spent from ${matchingExpenses.length} expenses`);
       }
     }
 
@@ -197,8 +173,6 @@ export async function POST(request) {
       // Force refresh of all updated budgets to ensure consistency
       await Budget.find({ userId }).lean(false).exec();
     }
-
-    console.log(`Sync completed: ${budgetsUpdated} budgets updated, ${totalExpensesSynced} expenses synced`);
 
     return NextResponse.json({
       success: true,

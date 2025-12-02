@@ -115,15 +115,12 @@ export async function POST(request) {
       const matchingBudget = await Budget.findForExpense(user.userId, expense.category, expense.date);
 
       if (matchingBudget) {
-        console.log(`Found matching budget for ${expense.category}: ${matchingBudget._id}`);
-        
         // Store previous state for alert checking
         const previousSpent = matchingBudget.spent;
         const previousPercentage = matchingBudget.progressPercentage;
 
         // Apply expense to budget
         await matchingBudget.addExpense(expense.amount);
-        console.log(`Applied expense ₹${expense.amount} to budget. New spent: ₹${matchingBudget.spent}`);
 
         // Check for threshold alerts
         const newPercentage = matchingBudget.progressPercentage;
@@ -156,7 +153,7 @@ export async function POST(request) {
           isOverBudget: matchingBudget.isOverBudget
         };
       } else {
-        console.log(`No matching budget found for category: ${expense.category}`);
+        // No matching budget found
       }
     } catch (budgetError) {
       console.error('Error updating budget:', budgetError);

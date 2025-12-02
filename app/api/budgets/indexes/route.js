@@ -7,16 +7,12 @@ export async function POST(request) {
   try {
     await connectDB();
     
-    console.log('Creating database indexes for Budget collection...');
-    
     // Ensure indexes are created
     await Budget.createIndexes();
     
     // Get collection stats
     const collection = Budget.collection;
     const indexes = await collection.listIndexes().toArray();
-    
-    console.log('Current indexes:', indexes.map(idx => idx.name));
     
     return NextResponse.json({
       success: true,

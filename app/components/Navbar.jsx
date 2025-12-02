@@ -21,7 +21,6 @@ export default function Navbar() {
     { href: '/debts', label: 'Debts', icon: '💳', color: 'orange' },
     { href: '/investments', label: 'Investments', icon: '📈', color: 'purple' },
     { href: '/budget', label: 'Budget', icon: '🎯', color: 'indigo' },
-    { href: '/reports', label: 'Reports', icon: '📄', color: 'teal' },
   ];
 
   const navItems = isAuthenticated ? privateNavItems : publicNavItems;

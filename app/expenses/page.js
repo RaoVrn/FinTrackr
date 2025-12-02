@@ -89,7 +89,7 @@ function ExpensesContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 via-rose-50 to-pink-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Success Messages */}
         {showSuccessMessage && (
           <div className="mb-6 space-y-4">

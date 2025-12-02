@@ -28,8 +28,6 @@ export async function POST(request) {
     const decoded = verifyToken(request);
     const userId = decoded.userId;
 
-    console.log(`Force refreshing budgets for user: ${userId}`);
-
     // Force complete refresh - bypass all MongoDB caching mechanisms
     const budgets = await Budget.aggregate([
       {
@@ -45,11 +43,6 @@ export async function POST(request) {
         $sort: { createdAt: -1 }
       }
     ]);
-
-    console.log(`Force refresh found ${budgets.length} budgets:`);
-    budgets.forEach(budget => {
-      console.log(`  Budget: "${budget.name}" (${budget.category}) - ₹${budget.spent || 0}/₹${budget.amount}`);
-    });
 
     // Calculate summary
     const totalBudget = budgets.reduce((sum, budget) => sum + budget.amount, 0);

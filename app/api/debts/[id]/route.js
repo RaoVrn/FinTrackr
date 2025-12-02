@@ -60,6 +60,14 @@ export async function PATCH(request, { params }) {
     const { id } = params;
     const body = await request.json();
     
+    // Validate ObjectId format
+    if (!id || id.length !== 24) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid debt ID format' },
+        { status: 400 }
+      );
+    }
+    
     // Find the debt first
     const existingDebt = await Debt.findOne({ _id: id, userId: userId });
     
@@ -117,11 +125,24 @@ export async function PATCH(request, { params }) {
     console.error('Error updating debt:', error);
     
     if (error.name === 'ValidationError') {
+      console.log('Validation error details:', error.errors);
       return NextResponse.json(
         { 
           success: false, 
           error: 'Validation failed',
           details: Object.values(error.errors).map(err => err.message)
+        },
+        { status: 400 }
+      );
+    }
+    
+    if (error.name === 'CastError') {
+      console.log('Cast error details:', error);
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Invalid data format',
+          details: [error.message]
         },
         { status: 400 }
       );

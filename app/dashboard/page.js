@@ -41,8 +41,165 @@ function DashboardContent() {
     incomeCount: 0,
     expenseCount: 0,
     debtCount: 0,
-    investmentCount: 0
+    investmentCount: 0,
+
+    // Chart data
+    expensesByCategory: {},
+    monthlyTrends: [],
+    needWantBreakdown: {}
   });
+
+  // Pie chart component
+  const PieChart = ({ data, title }) => {
+    console.log('PieChart data:', data); // Debug log
+    const total = Object.values(data || {}).reduce((sum, value) => sum + (value || 0), 0);
+    
+    if (total === 0 || Object.keys(data || {}).length === 0) {
+      return (
+        <div className="text-center py-8">
+          <div className="text-6xl mb-4">📊</div>
+          <h4 className="text-lg font-semibold text-gray-900 mb-2">{title}</h4>
+          <p className="text-gray-500">No data available</p>
+        </div>
+      );
+    }
+
+    const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#6b7280'];
+    const radius = 15.91549430918953;
+    const circumference = 2 * Math.PI * radius;
+    let accumulatedPercentage = 0;
+
+    return (
+      <div className="text-center">
+        <h4 className="text-lg font-semibold text-gray-900 mb-3">{title}</h4>
+        <div className="relative w-40 h-40 mx-auto mb-3">
+          <svg viewBox="0 0 42 42" className="w-40 h-40 transform -rotate-90">
+            {/* Background circle */}
+            <circle cx="21" cy="21" r={radius} fill="transparent" stroke="#f3f4f6" strokeWidth="3"></circle>
+            {/* Data segments */}
+            {Object.entries(data).map(([category, value], index) => {
+              const percentage = (value / total);
+              const strokeLength = circumference * percentage;
+              const offset = circumference * accumulatedPercentage;
+              const color = colors[index % colors.length];
+              
+              accumulatedPercentage += percentage;
+              
+              return (
+                <circle
+                  key={category}
+                  cx="21"
+                  cy="21"
+                  r={radius}
+                  fill="transparent"
+                  stroke={color}
+                  strokeWidth="3"
+                  strokeDasharray={`${strokeLength} ${circumference}`}
+                  strokeDashoffset={-offset}
+                  className="transition-all duration-500"
+                />
+              );
+            })}
+          </svg>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="text-center">
+              <div className="text-lg font-bold text-gray-900">₹{total.toLocaleString()}</div>
+              <div className="text-xs text-gray-500">Total</div>
+            </div>
+          </div>
+        </div>
+        <div className="space-y-1 max-w-sm mx-auto">
+          {Object.entries(data).map(([category, value], index) => (
+            <div key={category} className="flex items-center justify-between text-xs">
+              <div className="flex items-center min-w-0">
+                <div 
+                  className="w-2 h-2 rounded-full mr-2 flex-shrink-0" 
+                  style={{ backgroundColor: colors[index % colors.length] }}
+                ></div>
+                <span className="capitalize truncate">{category}</span>
+              </div>
+              <span className="font-medium ml-2">₹{value.toLocaleString()}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // Bar chart component
+  const BarChart = ({ data, title }) => {
+    console.log('BarChart data:', data); // Debug log
+    
+    if (!data || data.length === 0) {
+      return (
+        <div className="text-center py-8">
+          <div className="text-6xl mb-4">📈</div>
+          <h4 className="text-lg font-semibold text-gray-900 mb-2">{title}</h4>
+          <p className="text-gray-500">No trend data available</p>
+        </div>
+      );
+    }
+
+    const maxValue = Math.max(...data.map(item => Math.max(item.income || 0, item.expenses || 0)));
+    if (maxValue === 0) {
+      return (
+        <div className="text-center py-8">
+          <div className="text-6xl mb-4">📈</div>
+          <h4 className="text-lg font-semibold text-gray-900 mb-2">{title}</h4>
+          <p className="text-gray-500">No financial activity yet</p>
+        </div>
+      );
+    }
+
+    return (
+      <div>
+        <h4 className="text-lg font-semibold text-gray-900 mb-3">{title}</h4>
+        <div className="space-y-3">
+          {data.slice(-6).map((item, index) => (
+            <div key={index} className="space-y-1">
+              <div className="flex justify-between text-xs text-gray-600">
+                <span className="font-medium">{item.month}</span>
+              </div>
+              <div className="space-y-1">
+                {/* Income bar */}
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs text-green-600 w-10">Inc</span>
+                  <div className="flex-1 bg-gray-200 rounded-full h-1.5">
+                    <div 
+                      className="h-1.5 bg-green-500 rounded-full transition-all duration-700"
+                      style={{ width: `${((item.income || 0) / maxValue) * 100}%` }}
+                    ></div>
+                  </div>
+                  <span className="text-xs text-green-600 w-14 text-right">₹{(item.income || 0).toLocaleString()}</span>
+                </div>
+                {/* Expenses bar */}
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs text-red-600 w-10">Exp</span>
+                  <div className="flex-1 bg-gray-200 rounded-full h-1.5">
+                    <div 
+                      className="h-1.5 bg-red-500 rounded-full transition-all duration-700"
+                      style={{ width: `${((item.expenses || 0) / maxValue) * 100}%` }}
+                    ></div>
+                  </div>
+                  <span className="text-xs text-red-600 w-14 text-right">₹{(item.expenses || 0).toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-2 flex items-center justify-center space-x-3 text-xs text-gray-500">
+          <div className="flex items-center">
+            <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-1"></div>
+            Income
+          </div>
+          <div className="flex items-center">
+            <div className="w-1.5 h-1.5 bg-red-500 rounded-full mr-1"></div>
+            Expenses
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   useEffect(() => {
     const fetchAllFinancialData = async () => {
@@ -68,7 +225,7 @@ function DashboardContent() {
           : [];
 
         const debtsArray = debtsResponse.status === 'fulfilled'
-          ? (debtsResponse.value?.debts || debtsResponse.value || [])
+          ? (debtsResponse.value?.success ? debtsResponse.value.debts || [] : debtsResponse.value?.debts || debtsResponse.value || [])
           : [];
 
         const investmentsArray = investmentsResponse.status === 'fulfilled'
@@ -115,8 +272,8 @@ function DashboardContent() {
     const monthlyIncomeAmount = monthlyIncomes.reduce((sum, inc) => sum + (inc.amount || 0), 0);
 
     // Calculate debts
-    const totalDebtAmount = debtData.reduce((sum, debt) => sum + (debt.remainingAmount || debt.amount || 0), 0);
-    const monthlyDebtPayments = debtData.reduce((sum, debt) => sum + (debt.monthlyPayment || debt.amount / 12 || 0), 0);
+    const totalDebtAmount = debtData.reduce((sum, debt) => sum + (debt.currentBalance || debt.remainingAmount || debt.amount || 0), 0);
+    const monthlyDebtPayments = debtData.reduce((sum, debt) => sum + (debt.minimumPayment || debt.monthlyPayment || debt.amount / 12 || 0), 0);
 
     // Calculate investments
     const totalInvestmentValue = investmentData.reduce((sum, inv) => sum + (inv.currentValue || inv.amount || 0), 0);
@@ -131,35 +288,106 @@ function DashboardContent() {
     const netWorth = totalIncomeAmount + totalInvestmentValue - totalExpenseAmount - totalDebtAmount;
     const cashFlow = monthlyIncomeAmount - monthlyExpenseAmount - monthlyDebtPayments;
 
+    // Calculate chart data
+    const expensesByCategory = {};
+    console.log('Processing expense data:', expenseData); // Debug log
+    expenseData.forEach(expense => {
+      const category = expense.category || 'Other';
+      expensesByCategory[category] = (expensesByCategory[category] || 0) + (expense.amount || 0);
+    });
+    console.log('Expenses by category:', expensesByCategory); // Debug log
+
+    // Calculate Need vs Want vs Unsure
+    const needWantCategories = {
+      'Need': 0,
+      'Want': 0,
+      'Unsure': 0
+    };
+
+    // Define category mappings (you can customize these)
+    const needCategories = ['food', 'groceries', 'healthcare', 'utilities', 'transport', 'rent', 'housing'];
+    const wantCategories = ['entertainment', 'shopping', 'dining', 'travel', 'hobbies', 'games'];
+    
+    expenseData.forEach(expense => {
+      const category = (expense.category || '').toLowerCase();
+      const amount = expense.amount || 0;
+      
+      if (needCategories.includes(category)) {
+        needWantCategories['Need'] += amount;
+      } else if (wantCategories.includes(category)) {
+        needWantCategories['Want'] += amount;
+      } else {
+        needWantCategories['Unsure'] += amount;
+      }
+    });
+    console.log('Need vs Want breakdown:', needWantCategories); // Debug log
+
+    // Calculate monthly trends (last 6 months)
+    const monthlyTrends = [];
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(currentYear, currentMonth - i, 1);
+      const monthName = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+      
+      const monthIncomes = incomeData.filter(income => {
+        const incomeDate = new Date(income.createdAt || income.date);
+        return incomeDate.getMonth() === date.getMonth() && 
+               incomeDate.getFullYear() === date.getFullYear();
+      });
+      
+      const monthExpenses = expenseData.filter(expense => {
+        const expenseDate = new Date(expense.createdAt || expense.date);
+        return expenseDate.getMonth() === date.getMonth() && 
+               expenseDate.getFullYear() === date.getFullYear();
+      });
+      
+      monthlyTrends.push({
+        month: monthName,
+        income: monthIncomes.reduce((sum, inc) => sum + (inc.amount || 0), 0),
+        expenses: monthExpenses.reduce((sum, exp) => sum + (exp.amount || 0), 0)
+      });
+    }
+    console.log('Monthly trends:', monthlyTrends); // Debug log
+
     // Health metrics calculations
-    const emergencyFundRatio = monthlyExpenseAmount > 0 ? 
-      (totalIncomeAmount - totalExpenseAmount - totalDebtAmount) / (monthlyExpenseAmount * 3) : 0;
+    const availableSavings = monthlyIncomeAmount - monthlyExpenseAmount - monthlyDebtPayments;
+    const emergencyFundRatio = monthlyExpenseAmount > 0 && availableSavings > 0 ? 
+      availableSavings / monthlyExpenseAmount : 0;
     const debtToIncomeRatio = monthlyIncomeAmount > 0 ? monthlyDebtPayments / monthlyIncomeAmount : 0;
-    const savingsRate = monthlyIncomeAmount > 0 ? 
-      (monthlyIncomeAmount - monthlyExpenseAmount) / monthlyIncomeAmount : 0;
+    const netMonthlySavings = monthlyIncomeAmount - monthlyExpenseAmount - monthlyDebtPayments;
+    const savingsRate = monthlyIncomeAmount > 0 ? netMonthlySavings / monthlyIncomeAmount : 0;
 
     // Calculate financial health score
     let healthScore = 0;
     let hasHealthData = false;
 
-    // Only calculate health score if there's meaningful data
-    if (monthlyIncomeAmount > 0 || monthlyExpenseAmount > 0 || totalDebtAmount > 0 || totalInvestmentValue > 0) {
+    // Only calculate health score if there's meaningful monthly data
+    if (monthlyIncomeAmount > 0 && monthlyExpenseAmount > 0) {
       hasHealthData = true;
       
-      // Emergency fund component (0-25 points)
-      const emergencyScore = Math.min(Math.max(emergencyFundRatio, 0) * 25, 25);
+      // Emergency fund component (0-25 points) - based on months of expenses covered
+      const monthsOfExpensesCovered = monthlyExpenseAmount > 0 ? 
+        (monthlyIncomeAmount - monthlyExpenseAmount - monthlyDebtPayments) / monthlyExpenseAmount : 0;
+      const emergencyScore = Math.min(Math.max(monthsOfExpensesCovered / 3, 0) * 25, 25);
       
       // Debt ratio component (0-25 points) - lower debt ratio is better
-      const debtScore = Math.max(25 - (debtToIncomeRatio * 100), 0);
+      const debtScore = monthlyIncomeAmount > 0 ? 
+        Math.max(25 - (monthlyDebtPayments / monthlyIncomeAmount) * 100, 0) : 25;
       
-      // Savings rate component (0-25 points)
-      const savingsScore = Math.min(Math.max(savingsRate, 0) * 50, 25);
+      // Savings rate component (0-25 points) - positive cash flow is good
+      const monthlySavings = monthlyIncomeAmount - monthlyExpenseAmount - monthlyDebtPayments;
+      const savingsRatePercentage = monthlyIncomeAmount > 0 ? (monthlySavings / monthlyIncomeAmount) * 100 : 0;
+      const savingsScore = Math.min(Math.max(savingsRatePercentage / 2, 0), 25); // 50% savings rate = max points
       
-      // Investment component (0-25 points)
+      // Investment component (0-25 points) - having investments is good
       const investmentScore = totalInvestmentValue > 0 ? 
-        Math.min((totalInvestmentValue / Math.max(totalIncomeAmount, 1000)) * 100, 25) : 0;
+        Math.min((totalInvestmentValue / Math.max(monthlyIncomeAmount * 12, 1000)) * 100, 25) : 0;
       
       healthScore = Math.round(emergencyScore + debtScore + savingsScore + investmentScore);
+      healthScore = Math.min(healthScore, 100); // Cap at 100
+    } else if (monthlyIncomeAmount > 0 || totalInvestmentValue > 0) {
+      hasHealthData = true;
+      // Basic score if only partial data available
+      healthScore = 40; // Neutral score
     }
 
     setFinancialData({
@@ -194,7 +422,12 @@ function DashboardContent() {
       incomeCount: incomeData.length,
       expenseCount: expenseData.length,
       debtCount: debtData.length,
-      investmentCount: investmentData.length
+      investmentCount: investmentData.length,
+
+      // Chart data
+      expensesByCategory,
+      monthlyTrends,
+      needWantBreakdown: needWantCategories
     });
   };
 
@@ -258,16 +491,10 @@ function DashboardContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="relative">
-            <div className="w-20 h-20 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <div className="absolute inset-0 w-20 h-20 border-4 border-purple-400 border-b-transparent rounded-full animate-spin mx-auto" style={{animationDirection: 'reverse', animationDuration: '1s'}}></div>
-          </div>
-          <div className="space-y-2">
-            <p className="text-gray-700 text-xl font-semibold">Loading your financial overview</p>
-            <p className="text-gray-500 text-sm">Calculating your financial health...</p>
-          </div>
+          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 text-lg">Loading your financial overview...</p>
         </div>
       </div>
     );
@@ -278,26 +505,20 @@ function DashboardContent() {
   const budgetStatus = getBudgetStatus();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 relative">
-      {/* Background decoration */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-600/20 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-tr from-emerald-400/20 to-blue-600/20 rounded-full blur-3xl"></div>
-      </div>
-      
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-2">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-700 to-indigo-700 bg-clip-text text-transparent mb-2">
             Financial Dashboard
           </h1>
           <p className="text-gray-600 text-lg">Welcome back, {user?.name} 👋 Here's your complete financial picture</p>
         </div>
 
-        {/* SECTION A — Financial Summary */}
+        {/* SECTION A — Key Financial Overview */}
         <div className="mb-8">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-4">Financial Summary</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <h2 className="text-2xl font-semibold text-gray-900 mb-4">Your Financial Snapshot</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
             {/* Net Worth */}
             <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white p-6 rounded-2xl shadow-lg">
@@ -319,7 +540,7 @@ function DashboardContent() {
               )}
             </div>
 
-            {/* Cash Flow */}
+            {/* Monthly Cash Flow */}
             <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-2xl shadow-lg">
               <div className="flex items-center justify-between mb-4">
                 <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
@@ -327,139 +548,105 @@ function DashboardContent() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
                   </svg>
                 </div>
-                <span className="text-blue-100 text-sm font-medium">Cash Flow</span>
+                <span className="text-blue-100 text-sm font-medium">Monthly Cash Flow</span>
               </div>
               <p className="text-3xl font-bold mb-2">{cashFlowDisplay.amount}</p>
-              {cashFlowDisplay.showMessage ? (
-                <p className="text-blue-100 text-sm">{cashFlowDisplay.message}</p>
-              ) : (
-                <p className={`text-sm ${financialData.cashFlow > 0 ? 'text-green-200' : 'text-red-200'}`}>
-                  {cashFlowDisplay.message}
-                </p>
-              )}
-            </div>
-
-            {/* Budget Status */}
-            <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white p-6 rounded-2xl shadow-lg">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                </div>
-                <span className="text-purple-100 text-sm font-medium">Budget Status</span>
-              </div>
-              <p className="text-2xl font-bold mb-2">
-                {budgetStatus.status === "none" ? "No Budget" : budgetStatus.message}
+              <p className="text-blue-100 text-sm">
+                ₹{financialData.monthlyIncome.toLocaleString()} in - ₹{(financialData.monthlyExpenses + financialData.monthlyDebtPayments).toLocaleString()} out
               </p>
-              <div className="flex items-center justify-between">
-                <p className="text-purple-100 text-sm">
-                  {budgetStatus.status === "none" ? 
-                    "Create your first budget" : 
-                    `${((financialData.budgetUsed / financialData.budgetLimit) * 100).toFixed(0)}% used`
-                  }
-                </p>
-                {budgetStatus.status !== "none" && (
-                  <Link href="/budget" className="text-purple-100 hover:text-white text-sm underline">
-                    Manage
-                  </Link>
-                )}
-              </div>
             </div>
           </div>
         </div>
 
-        {/* SECTION B — Account Breakdown */}
+        {/* SECTION B — Portfolio Overview */}
         <div className="mb-8">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-4">Account Breakdown</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            
-            {/* Income */}
-            <div className="bg-white/90 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-white/20">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center">
-                  <span className="text-white text-xl">💰</span>
+          <h2 className="text-2xl font-semibold text-gray-900 mb-4">Portfolio Overview</h2>
+          <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              
+              {/* Assets vs Liabilities */}
+              <div className="lg:col-span-2">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Assets vs Liabilities</h3>
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-gray-700 font-medium flex items-center">
+                        <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                        Assets (Income + Investments)
+                      </span>
+                      <span className="font-semibold text-green-600">
+                        ₹{(financialData.totalIncome + financialData.totalInvestments).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-3">
+                      <div 
+                        className="h-3 bg-green-500 rounded-full"
+                        style={{
+                          width: `${Math.min(
+                            ((financialData.totalIncome + financialData.totalInvestments) / 
+                            Math.max(financialData.totalIncome + financialData.totalInvestments + financialData.totalExpenses + financialData.totalDebts, 1)) * 100,
+                            100
+                          )}%`
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-gray-700 font-medium flex items-center">
+                        <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
+                        Liabilities (Expenses + Debts)
+                      </span>
+                      <span className="font-semibold text-red-600">
+                        ₹{(financialData.totalExpenses + financialData.totalDebts).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-3">
+                      <div 
+                        className="h-3 bg-red-500 rounded-full"
+                        style={{
+                          width: `${Math.min(
+                            ((financialData.totalExpenses + financialData.totalDebts) / 
+                            Math.max(financialData.totalIncome + financialData.totalInvestments + financialData.totalExpenses + financialData.totalDebts, 1)) * 100,
+                            100
+                          )}%`
+                        }}
+                      ></div>
+                    </div>
+                  </div>
                 </div>
-                <Link href="/income" className="text-green-600 hover:text-green-700 text-sm font-medium">
-                  View →
-                </Link>
               </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Income</h3>
-              <p className="text-2xl font-bold text-gray-900 mb-1">
-                ₹{financialData.monthlyIncome.toLocaleString()}
-              </p>
-              <p className="text-sm text-gray-500">
-                {financialData.incomeCount > 0 ? 
-                  `${financialData.incomeCount} sources this month` : 
-                  'Add your first income'
-                }
-              </p>
-            </div>
 
-            {/* Expenses */}
-            <div className="bg-white/90 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-white/20">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-rose-600 rounded-xl flex items-center justify-center">
-                  <span className="text-white text-xl">💸</span>
+              {/* Financial Health Score */}
+              <div className="text-center">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Financial Health</h3>
+                <div className="relative w-24 h-24 mx-auto mb-4">
+                  <svg className="w-24 h-24 transform -rotate-90" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="40" stroke="#f3f4f6" strokeWidth="8" fill="none" />
+                    <circle
+                      cx="50" cy="50" r="40"
+                      stroke={financialData.savingsRate >= 0.2 ? "#10b981" : financialData.savingsRate >= 0.1 ? "#f59e0b" : "#ef4444"}
+                      strokeWidth="8" fill="none"
+                      strokeDasharray={251.2}
+                      strokeDashoffset={251.2 - (Math.min(financialData.savingsRate * 100, 100) / 100) * 251.2}
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-xl font-bold text-gray-900">{(financialData.savingsRate * 100).toFixed(0)}%</span>
+                  </div>
                 </div>
-                <Link href="/expenses" className="text-red-600 hover:text-red-700 text-sm font-medium">
-                  View →
-                </Link>
+                <p className="text-sm font-medium text-gray-700">Savings Rate</p>
+                <p className={`text-xs mt-1 ${
+                  financialData.savingsRate >= 0.2 ? 'text-green-600' : 
+                  financialData.savingsRate >= 0.1 ? 'text-yellow-600' : 'text-red-600'
+                }`}>
+                  {financialData.savingsRate >= 0.2 ? 'Excellent' : 
+                   financialData.savingsRate >= 0.1 ? 'Good' : 
+                   financialData.savingsRate >= 0 ? 'Improving' : 'Needs attention'}
+                </p>
               </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Expenses</h3>
-              <p className="text-2xl font-bold text-gray-900 mb-1">
-                ₹{financialData.monthlyExpenses.toLocaleString()}
-              </p>
-              <p className="text-sm text-gray-500">
-                {financialData.expenseCount > 0 ? 
-                  `${financialData.expenseCount} transactions` : 
-                  'No expenses recorded'
-                }
-              </p>
-            </div>
-
-            {/* Debts */}
-            <div className="bg-white/90 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-white/20">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl flex items-center justify-center">
-                  <span className="text-white text-xl">💳</span>
-                </div>
-                <Link href="/debts" className="text-orange-600 hover:text-orange-700 text-sm font-medium">
-                  View →
-                </Link>
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Debts</h3>
-              <p className="text-2xl font-bold text-gray-900 mb-1">
-                ₹{financialData.totalDebts.toLocaleString()}
-              </p>
-              <p className="text-sm text-orange-600">
-                {financialData.totalDebts > 0 ? 
-                  `₹${financialData.monthlyDebtPayments.toLocaleString()}/month` : 
-                  'Debt-free 🎉'
-                }
-              </p>
-            </div>
-
-            {/* Investments */}
-            <div className="bg-white/90 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-white/20">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center">
-                  <span className="text-white text-xl">📈</span>
-                </div>
-                <Link href="/investments" className="text-purple-600 hover:text-purple-700 text-sm font-medium">
-                  View →
-                </Link>
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Investments</h3>
-              <p className="text-2xl font-bold text-gray-900 mb-1">
-                ₹{financialData.totalInvestments.toLocaleString()}
-              </p>
-              <p className="text-sm text-gray-500">
-                {financialData.investmentCount > 0 ? 
-                  `${financialData.investmentCount} investments` : 
-                  'Start investing'
-                }
-              </p>
             </div>
           </div>
         </div>
@@ -513,171 +700,245 @@ function DashboardContent() {
           </div>
         </div>
 
-        {/* SECTION D — Financial Health (conditional) */}
-        {financialData.hasHealthData && (
-          <div className="mb-8">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">Financial Health</h2>
-            <div className="bg-white/90 backdrop-blur-sm p-8 rounded-2xl shadow-lg border border-white/20">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* SECTION D — Smart Recommendations & Budget Status */}
+        <div className="mb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            {/* Monthly Progress */}
+            <div className="lg:col-span-2">
+              <h2 className="text-2xl font-semibold text-gray-900 mb-4">Monthly Progress</h2>
+              <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
                 
-                {/* Health Score Circle */}
-                <div className="text-center">
-                  <div className="w-32 h-32 mx-auto relative mb-4">
-                    <svg className="w-32 h-32 transform -rotate-90" viewBox="0 0 100 100">
-                      <circle
-                        cx="50"
-                        cy="50"
-                        r="40"
-                        stroke="#f3f4f6"
-                        strokeWidth="6"
-                        fill="none"
-                      />
-                      <circle
-                        cx="50"
-                        cy="50"
-                        r="40"
-                        stroke={
-                          financialData.financialHealthScore >= 80 ? "#10b981" : 
-                          financialData.financialHealthScore >= 60 ? "#f59e0b" : "#ef4444"
-                        }
-                        strokeWidth="6"
-                        fill="none"
-                        strokeDasharray={251.2}
-                        strokeDashoffset={251.2 - (financialData.financialHealthScore / 100) * 251.2}
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-3xl font-bold text-gray-900">{financialData.financialHealthScore}</span>
-                    </div>
+                {/* Income vs Expenses Progress */}
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-medium text-gray-900">Cash Flow Breakdown</h3>
+                    <span className={`text-sm font-medium px-3 py-1 rounded-full ${
+                      financialData.cashFlow >= 0 
+                        ? 'bg-green-100 text-green-700' 
+                        : 'bg-red-100 text-red-700'
+                    }`}>
+                      {financialData.cashFlow >= 0 ? 'Positive' : 'Negative'} Flow
+                    </span>
                   </div>
-                  <p className="text-xl font-semibold text-gray-900 mb-2">
-                    {financialData.financialHealthScore >= 80 ? 'Excellent' : 
-                     financialData.financialHealthScore >= 60 ? 'Good' : 'Needs Work'}
-                  </p>
-                  <p className="text-gray-600">Overall Financial Health</p>
-                </div>
-
-                {/* Health Metrics */}
-                <div className="lg:col-span-2 space-y-6">
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-gray-700 font-medium">Emergency Fund</span>
-                      <span className={`text-sm font-medium ${
-                        financialData.emergencyFundRatio >= 1 ? 'text-green-600' : 
-                        financialData.emergencyFundRatio >= 0.5 ? 'text-yellow-600' : 'text-red-600'
-                      }`}>
-                        {financialData.emergencyFundRatio >= 1 ? 'Excellent' : 
-                         financialData.emergencyFundRatio >= 0.5 ? 'Good' : 'Needs Attention'}
-                      </span>
+                  
+                  <div className="space-y-3">
+                    <div>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-gray-600">Monthly Income</span>
+                        <span className="font-medium text-green-600">₹{financialData.monthlyIncome.toLocaleString()}</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div className="h-2 bg-green-500 rounded-full" style={{width: '100%'}}></div>
+                      </div>
                     </div>
-                    <div className="w-full h-3 bg-gray-200 rounded-full">
-                      <div 
-                        className={`h-3 rounded-full ${
-                          financialData.emergencyFundRatio >= 1 ? 'bg-green-500' : 
-                          financialData.emergencyFundRatio >= 0.5 ? 'bg-yellow-500' : 'bg-red-500'
-                        }`}
-                        style={{ width: `${Math.min(financialData.emergencyFundRatio * 100, 100)}%` }}
-                      ></div>
+                    
+                    <div>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-gray-600">Monthly Expenses</span>
+                        <span className="font-medium text-red-600">₹{financialData.monthlyExpenses.toLocaleString()}</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="h-2 bg-red-500 rounded-full" 
+                          style={{
+                            width: `${financialData.monthlyIncome > 0 ? (financialData.monthlyExpenses / financialData.monthlyIncome) * 100 : 0}%`
+                          }}
+                        ></div>
+                      </div>
                     </div>
-                    <p className="text-sm text-gray-500 mt-1">
-                      {financialData.emergencyFundRatio >= 1 ? 
-                        '3+ months of expenses covered' : 
-                        'Build emergency fund to 3-6 months of expenses'
-                      }
-                    </p>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-gray-700 font-medium">Debt Ratio</span>
-                      <span className={`text-sm font-medium ${
-                        financialData.debtToIncomeRatio <= 0.2 ? 'text-green-600' : 
-                        financialData.debtToIncomeRatio <= 0.4 ? 'text-yellow-600' : 'text-red-600'
-                      }`}>
-                        {financialData.debtToIncomeRatio <= 0.2 ? 'Excellent' : 
-                         financialData.debtToIncomeRatio <= 0.4 ? 'Manageable' : 'High'}
-                      </span>
-                    </div>
-                    <div className="w-full h-3 bg-gray-200 rounded-full">
-                      <div 
-                        className={`h-3 rounded-full ${
-                          financialData.debtToIncomeRatio <= 0.2 ? 'bg-green-500' : 
-                          financialData.debtToIncomeRatio <= 0.4 ? 'bg-yellow-500' : 'bg-red-500'
-                        }`}
-                        style={{ width: `${Math.min(financialData.debtToIncomeRatio * 100, 100)}%` }}
-                      ></div>
-                    </div>
-                    <p className="text-sm text-gray-500 mt-1">
-                      {(financialData.debtToIncomeRatio * 100).toFixed(1)}% of income goes to debt payments
-                    </p>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-gray-700 font-medium">Savings Rate</span>
-                      <span className={`text-sm font-medium ${
-                        financialData.savingsRate >= 0.2 ? 'text-green-600' : 
-                        financialData.savingsRate >= 0.1 ? 'text-yellow-600' : 'text-red-600'
-                      }`}>
-                        {financialData.savingsRate >= 0.2 ? 'Excellent' : 
-                         financialData.savingsRate >= 0.1 ? 'Good' : 'Improve'}
-                      </span>
-                    </div>
-                    <div className="w-full h-3 bg-gray-200 rounded-full">
-                      <div 
-                        className={`h-3 rounded-full ${
-                          financialData.savingsRate >= 0.2 ? 'bg-green-500' : 
-                          financialData.savingsRate >= 0.1 ? 'bg-yellow-500' : 'bg-red-500'
-                        }`}
-                        style={{ width: `${Math.min(Math.abs(financialData.savingsRate) * 100, 100)}%` }}
-                      ></div>
-                    </div>
-                    <p className="text-sm text-gray-500 mt-1">
-                      {financialData.savingsRate >= 0 ? 
-                        `Saving ${(financialData.savingsRate * 100).toFixed(1)}% of income` :
-                        `Spending ${Math.abs(financialData.savingsRate * 100).toFixed(1)}% more than earning`
-                      }
-                    </p>
+                    
+                    {financialData.monthlyDebtPayments > 0 && (
+                      <div>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="text-gray-600">Debt Payments</span>
+                          <span className="font-medium text-orange-600">₹{financialData.monthlyDebtPayments.toLocaleString()}</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="h-2 bg-orange-500 rounded-full" 
+                            style={{
+                              width: `${financialData.monthlyIncome > 0 ? (financialData.monthlyDebtPayments / financialData.monthlyIncome) * 100 : 0}%`
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
+
+                {/* Key Metrics Grid */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-blue-50 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-blue-600 font-medium">Expense Ratio</p>
+                        <p className="text-xl font-bold text-blue-900">
+                          {financialData.monthlyIncome > 0 ? ((financialData.monthlyExpenses / financialData.monthlyIncome) * 100).toFixed(1) : 0}%
+                        </p>
+                      </div>
+                      <div className="text-blue-500">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-purple-50 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-purple-600 font-medium">Total Entries</p>
+                        <p className="text-xl font-bold text-purple-900">
+                          {financialData.incomeCount + financialData.expenseCount + financialData.investmentCount + financialData.debtCount}
+                        </p>
+                      </div>
+                      <div className="text-purple-500">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            {/* Budget Status */}
+            <div>
+              <h2 className="text-2xl font-semibold text-gray-900 mb-4">Budget Status</h2>
+              <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
+                {financialData.userHasBudget ? (
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-sm font-medium text-gray-700">This Month</span>
+                      <Link href="/budget" className="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                        Manage →
+                      </Link>
+                    </div>
+                    <div className="text-center mb-4">
+                      <p className="text-3xl font-bold text-purple-600 mb-2">
+                        ₹{(financialData.budgetLimit - financialData.budgetUsed).toLocaleString()}
+                      </p>
+                      <p className="text-sm text-gray-600">Remaining</p>
+                    </div>
+                    <div className="mb-4">
+                      <div className="flex items-center justify-between text-sm mb-2">
+                        <span className="text-gray-600">Used</span>
+                        <span className="font-medium">{((financialData.budgetUsed / financialData.budgetLimit) * 100).toFixed(0)}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className={`h-2 rounded-full ${
+                            (financialData.budgetUsed / financialData.budgetLimit) > 0.9 ? 'bg-red-500' :
+                            (financialData.budgetUsed / financialData.budgetLimit) > 0.7 ? 'bg-yellow-500' : 'bg-green-500'
+                          }`}
+                          style={{ width: `${Math.min((financialData.budgetUsed / financialData.budgetLimit) * 100, 100)}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-500 text-center">
+                      ₹{financialData.budgetUsed.toLocaleString()} of ₹{financialData.budgetLimit.toLocaleString()} used
+                    </p>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No Budget Set</h3>
+                    <p className="text-gray-600 text-sm mb-4">Create budgets to track your spending</p>
+                    <Link href="/budget/create" className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors">
+                      Create Budget
+                    </Link>
+                  </div>
+                )}
               </div>
             </div>
           </div>
-        )}
+        </div>
 
-        {/* SECTION E — Charts (placeholder) */}
+        {/* SECTION E — Financial Analytics Charts */}
         <div className="mb-8">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-4">Financial Insights</h2>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <h2 className="text-2xl font-semibold text-gray-900 mb-6">Financial Analytics</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
-            {/* Category Distribution Placeholder */}
-            <div className="bg-white/90 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-white/20">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Expense Categories</h3>
-              <div className="h-48 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl flex items-center justify-center">
-                <div className="text-center">
-                  <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
-                  </svg>
-                  <p className="text-gray-500">Pie chart coming soon</p>
-                  <p className="text-sm text-gray-400">Category distribution</p>
+            {/* Expenses Breakdown Pie Chart */}
+            <div className="bg-white rounded-xl p-4 shadow-lg border border-gray-100 h-fit">
+              {Object.keys(financialData.expensesByCategory || {}).length > 0 ? (
+                <PieChart 
+                  data={financialData.expensesByCategory} 
+                  title="Expenses by Category" 
+                />
+              ) : (
+                <div className="text-center py-8">
+                  <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-2">No Expense Data</h3>
+                  <p className="text-gray-600 text-xs mb-3">Add expenses to see breakdown</p>
+                  <Link href="/expenses/new" className="text-blue-600 hover:text-blue-800 font-medium text-xs">
+                    Add Expense →
+                  </Link>
                 </div>
-              </div>
+              )}
             </div>
 
-            {/* Monthly Trend Placeholder */}
-            <div className="bg-white/90 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-white/20">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Monthly Trends</h3>
-              <div className="h-48 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl flex items-center justify-center">
-                <div className="text-center">
-                  <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                  <p className="text-gray-500">Charts coming soon</p>
-                  <p className="text-sm text-gray-400">Income vs expenses over time</p>
+            {/* Monthly Trends Bar Chart */}
+            <div className="bg-white rounded-xl p-4 shadow-lg border border-gray-100 h-fit">
+              {financialData.monthlyTrends && financialData.monthlyTrends.length > 0 ? (
+                <BarChart 
+                  data={financialData.monthlyTrends} 
+                  title="6-Month Income vs Expenses Trend" 
+                />
+              ) : (
+                <div className="text-center py-8">
+                  <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-2">No Trend Data</h3>
+                  <p className="text-gray-600 text-xs mb-3">Add transactions to see trends</p>
+                  <div className="space-x-2 text-xs">
+                    <Link href="/income/new" className="text-green-600 hover:text-green-800 font-medium">
+                      Add Income
+                    </Link>
+                    <span className="text-gray-400">|</span>
+                    <Link href="/expenses/new" className="text-red-600 hover:text-red-800 font-medium">
+                      Add Expense
+                    </Link>
+                  </div>
                 </div>
-              </div>
+              )}
+            </div>
+
+            {/* Need vs Want vs Unsure Pie Chart */}
+            <div className="bg-white rounded-xl p-4 shadow-lg border border-gray-100 h-fit">
+              {Object.values(financialData.needWantBreakdown || {}).some(val => val > 0) ? (
+                <PieChart 
+                  data={financialData.needWantBreakdown} 
+                  title="Need vs Want vs Unsure" 
+                />
+              ) : (
+                <div className="text-center py-8">
+                  <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-2">No Spending Data</h3>
+                  <p className="text-gray-600 text-xs mb-3">Add expenses to see need vs want analysis</p>
+                  <Link href="/expenses/new" className="text-blue-600 hover:text-blue-800 font-medium text-xs">
+                    Add Expense →
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         </div>
