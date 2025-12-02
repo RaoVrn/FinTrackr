@@ -19,7 +19,7 @@ const verifyToken = (request) => {
   }
 };
 
-// GET - Fetch all budgets for authenticated user
+// GET - Fetch all budgets for authenticated user with comprehensive filtering
 export async function GET(request) {
   try {
     await connectDB();
@@ -31,36 +31,78 @@ export async function GET(request) {
     // Get query parameters for filtering
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category');
-    const period = searchParams.get('period');
-    const active = searchParams.get('active');
+    const priority = searchParams.get('priority');
+    const month = searchParams.get('month'); // Format: YYYY-MM
     const page = parseInt(searchParams.get('page')) || 1;
     const limit = parseInt(searchParams.get('limit')) || 50;
     const skip = (page - 1) * limit;
 
     // Build filter query
-    let filter = { user: userId };
+    let filter = { 
+      userId,
+      $or: [
+        { isActive: true },
+        { isActive: { $exists: false } } // Handle budgets created before isActive field was added
+      ]
+    };
+    
     if (category && category !== 'all') {
       filter.category = category;
     }
-    if (period && period !== 'all') {
-      filter.period = period;
+    
+    if (priority && priority !== 'all') {
+      filter.priority = priority;
     }
-    if (active === 'true') {
-      filter.isActive = true;
+    
+    // Month filter - find budgets that overlap with the specified month
+    if (month) {
+      const [year, monthNum] = month.split('-');
+      const startOfMonth = new Date(year, monthNum - 1, 1);
+      const endOfMonth = new Date(year, monthNum, 0);
+      
+      filter.$or = [
+        {
+          startDate: { $lte: endOfMonth },
+          endDate: { $gte: startOfMonth }
+        }
+      ];
     }
 
-    // Fetch budgets with pagination
+    console.log('Budget API - Filter:', JSON.stringify(filter));
+    
+    // Simple, robust query without optimization hints that might cause issues
     const budgets = await Budget.find(filter)
       .sort({ createdAt: -1 })
       .limit(limit)
       .skip(skip)
-      .populate('user', 'name email');
+      .lean(false); // Keep lean false for fresh data
+
+    console.log(`Budget API - Found ${budgets.length} budgets for user ${userId}`);
+    budgets.forEach(budget => {
+      console.log(`  Budget: "${budget.name}" (${budget.category}) - ₹${budget.spent || 0}/₹${budget.amount}`);
+    });
 
     // Get total count for pagination
     const totalCount = await Budget.countDocuments(filter);
 
+    // Calculate summary statistics
+    const totalBudget = budgets.reduce((sum, budget) => sum + budget.amount, 0);
+    const totalSpent = budgets.reduce((sum, budget) => sum + budget.spent, 0);
+    const totalRemaining = budgets.reduce((sum, budget) => sum + budget.remaining, 0);
+    const categoriesCount = new Set(budgets.map(budget => budget.category)).size;
+
+    const summary = {
+      totalBudget,
+      totalSpent,
+      totalRemaining,
+      categoriesCount,
+      budgetsCount: budgets.length
+    };
+
     return NextResponse.json({
+      success: true,
       budgets,
+      summary,
       pagination: {
         page,
         limit,
@@ -72,12 +114,12 @@ export async function GET(request) {
     console.error('GET /api/budgets error:', error);
     if (error.message === 'Invalid token' || error.message === 'No token provided') {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
     return NextResponse.json(
-      { error: 'Failed to fetch budgets' },
+      { success: false, error: 'Failed to fetch budgets' },
       { status: 500 }
     );
   }
@@ -94,185 +136,111 @@ export async function POST(request) {
 
     const body = await request.json();
     const {
+      name,
       category,
       amount,
-      period,
-      description,
-      alertThreshold
+      startDate,
+      endDate,
+      isRecurring,
+      rolloverEnabled,
+      priority,
+      notes,
+      alert50,
+      alert75,
+      alert100,
+      alertExceeded
     } = body;
 
     // Validate required fields
-    if (!category || !amount || !period) {
+    if (!name || !category || !amount || !startDate || !endDate) {
       return NextResponse.json(
-        { error: 'Missing required fields: category, amount, and period are required' },
+        { success: false, error: 'Missing required fields: name, category, amount, startDate, and endDate are required' },
         { status: 400 }
       );
     }
 
-    // Check if budget already exists for this category and period
+    // Validate amount
+    if (amount <= 0) {
+      return NextResponse.json(
+        { success: false, error: 'Budget amount must be positive' },
+        { status: 400 }
+      );
+    }
+
+    // Validate dates
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    if (start >= end) {
+      return NextResponse.json(
+        { success: false, error: 'End date must be after start date' },
+        { status: 400 }
+      );
+    }
+
+    // Check for overlapping budgets in the same category
     const existingBudget = await Budget.findOne({
-      user: userId,
-      category: category.trim(),
-      period,
-      isActive: true
+      userId,
+      category: category.toLowerCase(),
+      $or: [
+        {
+          startDate: { $lte: end },
+          endDate: { $gte: start }
+        }
+      ]
     });
 
     if (existingBudget) {
       return NextResponse.json(
-        { error: `Active budget already exists for ${category} (${period})` },
+        { success: false, error: `Budget already exists for ${category} in the selected time period` },
         { status: 400 }
       );
     }
 
     // Create new budget
     const budget = new Budget({
-      user: userId,
-      category: category.trim(),
+      name: name.trim(),
+      category: category.toLowerCase(),
       amount: parseFloat(amount),
-      period,
-      description: description?.trim(),
-      alertThreshold: alertThreshold ? parseFloat(alertThreshold) : 80
+      startDate: start,
+      endDate: end,
+      isRecurring: Boolean(isRecurring),
+      rolloverEnabled: Boolean(rolloverEnabled),
+      priority: priority || 'essential',
+      notes: notes?.trim() || '',
+      alert50: alert50 !== false, // default true
+      alert75: alert75 !== false, // default true
+      alert100: alert100 !== false, // default true
+      alertExceeded: alertExceeded !== false, // default true
+      spent: 0,
+      isActive: true,
+      rolloverAmount: 0,
+      userId
     });
 
     await budget.save();
-    await budget.populate('user', 'name email');
 
-    return NextResponse.json(budget, { status: 201 });
+    return NextResponse.json({
+      success: true,
+      budget,
+      message: 'Budget created successfully'
+    }, { status: 201 });
+
   } catch (error) {
     console.error('POST /api/budgets error:', error);
     if (error.message === 'Invalid token' || error.message === 'No token provided') {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
     if (error.name === 'ValidationError') {
       return NextResponse.json(
-        { error: 'Validation failed', details: Object.values(error.errors).map(e => e.message) },
+        { success: false, error: 'Validation failed', details: Object.values(error.errors).map(e => e.message) },
         { status: 400 }
       );
     }
     return NextResponse.json(
-      { error: 'Failed to create budget' },
-      { status: 500 }
-    );
-  }
-}
-
-// PUT - Update existing budget
-export async function PUT(request) {
-  try {
-    await connectDB();
-    
-    // Verify JWT token
-    const decoded = verifyToken(request);
-    const userId = decoded.userId;
-
-    const body = await request.json();
-    const { id, ...updateData } = body;
-
-    if (!id) {
-      return NextResponse.json(
-        { error: 'Budget ID is required' },
-        { status: 400 }
-      );
-    }
-
-    // Find and update budget (ensure user owns it)
-    const budget = await Budget.findOne({ _id: id, user: userId });
-    if (!budget) {
-      return NextResponse.json(
-        { error: 'Budget not found or unauthorized' },
-        { status: 404 }
-      );
-    }
-
-    // Handle spending update
-    if (updateData.action === 'updateSpending') {
-      const { amount } = updateData;
-      
-      if (amount === undefined || amount === null) {
-        return NextResponse.json(
-          { error: 'Spending amount is required' },
-          { status: 400 }
-        );
-      }
-
-      budget.spent = parseFloat(amount);
-      budget.lastUpdated = new Date();
-    } else {
-      // Regular update
-      Object.keys(updateData).forEach(key => {
-        if (key !== 'action' && updateData[key] !== undefined) {
-          budget[key] = updateData[key];
-        }
-      });
-    }
-
-    await budget.save();
-    await budget.populate('user', 'name email');
-
-    return NextResponse.json(budget);
-  } catch (error) {
-    console.error('PUT /api/budgets error:', error);
-    if (error.message === 'Invalid token' || error.message === 'No token provided') {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-    if (error.name === 'ValidationError') {
-      return NextResponse.json(
-        { error: 'Validation failed', details: Object.values(error.errors).map(e => e.message) },
-        { status: 400 }
-      );
-    }
-    return NextResponse.json(
-      { error: 'Failed to update budget' },
-      { status: 500 }
-    );
-  }
-}
-
-// DELETE - Delete budget
-export async function DELETE(request) {
-  try {
-    await connectDB();
-    
-    // Verify JWT token
-    const decoded = verifyToken(request);
-    const userId = decoded.userId;
-
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
-
-    if (!id) {
-      return NextResponse.json(
-        { error: 'Budget ID is required' },
-        { status: 400 }
-      );
-    }
-
-    // Find and delete budget (ensure user owns it)
-    const budget = await Budget.findOneAndDelete({ _id: id, user: userId });
-    if (!budget) {
-      return NextResponse.json(
-        { error: 'Budget not found or unauthorized' },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json({ message: 'Budget deleted successfully' });
-  } catch (error) {
-    console.error('DELETE /api/budgets error:', error);
-    if (error.message === 'Invalid token' || error.message === 'No token provided') {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-    return NextResponse.json(
-      { error: 'Failed to delete budget' },
+      { success: false, error: 'Failed to create budget' },
       { status: 500 }
     );
   }

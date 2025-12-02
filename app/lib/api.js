@@ -453,7 +453,189 @@ export const debtAPI = {
   },
 };
 export const investmentAPI = createAPI('investments');
-export const budgetAPI = createAPI('budgets');
+
+// Enhanced Budget API with comprehensive functionality
+export const budgetAPI = {
+  // Get all budgets with advanced filtering and summary
+  getAll: async (params = {}) => {
+    const queryParams = new URLSearchParams();
+    Object.keys(params).forEach(key => {
+      if (params[key] !== null && params[key] !== undefined && params[key] !== 'all') {
+        queryParams.set(key, params[key].toString());
+      }
+    });
+
+    const url = `/api/budgets${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    
+    const response = await apiCall(url);
+    if (response && response.ok) {
+      const data = await response.json();
+      return data.success ? data : { success: false, error: data.error };
+    }
+    
+    const error = await response?.json();
+    throw new Error(error?.error || 'Failed to fetch budgets');
+  },
+
+  // Get single budget by ID with progress info
+  getById: async (id) => {
+    const response = await apiCall(`/api/budgets/${id}`);
+    if (response && response.ok) {
+      const data = await response.json();
+      return data.success ? data.budget : null;
+    }
+    
+    const error = await response?.json();
+    throw new Error(error?.error || 'Failed to fetch budget');
+  },
+
+  // Create new budget
+  create: async (budgetData) => {
+    const response = await apiCall('/api/budgets', {
+      method: 'POST',
+      body: JSON.stringify(budgetData),
+    });
+    
+    if (response && response.ok) {
+      const data = await response.json();
+      return data;
+    }
+    
+    const error = await response?.json();
+    if (error?.details) {
+      throw new Error(error.details.join(', '));
+    }
+    throw new Error(error?.error || 'Failed to create budget');
+  },
+
+  // Update budget
+  update: async (id, budgetData) => {
+    const response = await apiCall(`/api/budgets/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(budgetData),
+    });
+    
+    if (response && response.ok) {
+      const data = await response.json();
+      return data;
+    }
+    
+    const error = await response?.json();
+    if (error?.details) {
+      throw new Error(error.details.join(', '));
+    }
+    throw new Error(error?.error || 'Failed to update budget');
+  },
+
+  // Delete budget
+  delete: async (id) => {
+    const response = await apiCall(`/api/budgets/${id}`, {
+      method: 'DELETE',
+    });
+    
+    if (response && response.ok) {
+      const data = await response.json();
+      return data;
+    }
+    
+    const error = await response?.json();
+    throw new Error(error?.error || 'Failed to delete budget');
+  },
+
+  // Apply expense to budget (integrate with expense tracking)
+  applyExpense: async (budgetId, expense) => {
+    const response = await apiCall(`/api/budgets/${budgetId}/apply-expense`, {
+      method: 'POST',
+      body: JSON.stringify({ expense }),
+    });
+    
+    if (response && response.ok) {
+      const data = await response.json();
+      return data;
+    }
+    
+    const error = await response?.json();
+    throw new Error(error?.error || 'Failed to apply expense to budget');
+  },
+
+  // Get current month budgets
+  getCurrentMonth: async () => {
+    const now = new Date();
+    const month = now.toISOString().slice(0, 7); // YYYY-MM format
+    return await budgetAPI.getAll({ month });
+  },
+
+  // Get budgets by category
+  getByCategory: async (category) => {
+    return await budgetAPI.getAll({ category });
+  },
+
+  // Get budgets by priority
+  getByPriority: async (priority) => {
+    return await budgetAPI.getAll({ priority });
+  },
+
+  // Sync all expenses with budgets
+  syncExpenses: async () => {
+    const response = await apiCall('/api/budgets/sync-expenses', {
+      method: 'POST',
+    });
+    
+    if (response && response.ok) {
+      const data = await response.json();
+      return data;
+    }
+    
+    const error = await response?.json();
+    throw new Error(error?.error || 'Failed to sync expenses with budgets');
+  },
+
+  // Sync all expenses with their matching budgets
+  syncExpenses: async () => {
+    const response = await apiCall('/api/budgets/sync-expenses', {
+      method: 'POST',
+    });
+    
+    if (response && response.ok) {
+      const data = await response.json();
+      return data;
+    }
+    
+    const error = await response?.json();
+    throw new Error(error?.error || 'Failed to sync expenses with budgets');
+  },
+
+  // Find budget for expense (to automatically apply expenses to budgets)
+  findBudgetForExpense: async (expense) => {
+    try {
+      const { category, date } = expense;
+      if (!category || !date) return null;
+
+      // Get budgets for the expense category
+      const response = await budgetAPI.getAll({ 
+        category: category.toLowerCase(),
+        month: new Date(date).toISOString().slice(0, 7)
+      });
+
+      if (response.success && response.budgets && response.budgets.length > 0) {
+        // Find budget that covers the expense date
+        const expenseDate = new Date(date);
+        const matchingBudget = response.budgets.find(budget => {
+          const startDate = new Date(budget.startDate);
+          const endDate = new Date(budget.endDate);
+          return expenseDate >= startDate && expenseDate <= endDate;
+        });
+
+        return matchingBudget || null;
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error finding budget for expense:', error);
+      return null;
+    }
+  }
+};
 
 // Helper functions for expense management
 export const expenseHelpers = {
@@ -943,5 +1125,317 @@ export const debtHelpers = {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     
     return diffDays;
+  }
+};
+
+// Budget helper functions
+export const budgetHelpers = {
+  // Format currency amount
+  formatCurrency: (amount, currency = 'INR') => {
+    const currencySymbols = {
+      'INR': '₹',
+      'USD': '$',
+      'EUR': '€',
+      'GBP': '£',
+      'AUD': 'A$',
+      'CAD': 'C$'
+    };
+    
+    const symbol = currencySymbols[currency] || currency;
+    return `${symbol}${amount.toLocaleString()}`;
+  },
+
+  // Format date for display
+  formatDate: (date) => {
+    return new Date(date).toLocaleDateString('en-IN', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  },
+
+  // Get category info
+  getCategoryInfo: (category) => {
+    const categories = {
+      'food': { label: 'Food & Dining', icon: '🍽️', color: 'orange' },
+      'transport': { label: 'Transportation', icon: '🚗', color: 'blue' },
+      'entertainment': { label: 'Entertainment', icon: '🎬', color: 'purple' },
+      'shopping': { label: 'Shopping', icon: '🛍️', color: 'pink' },
+      'bills': { label: 'Bills & Utilities', icon: '💡', color: 'yellow' },
+      'health': { label: 'Health & Medical', icon: '🏥', color: 'red' },
+      'education': { label: 'Education', icon: '📚', color: 'indigo' },
+      'travel': { label: 'Travel', icon: '✈️', color: 'cyan' },
+      'others': { label: 'Others', icon: '📦', color: 'gray' }
+    };
+    
+    return categories[category] || categories['others'];
+  },
+
+  // Get priority info
+  getPriorityInfo: (priority) => {
+    const priorities = {
+      'essential': { 
+        label: 'Essential', 
+        color: 'red', 
+        bgColor: 'bg-red-100', 
+        textColor: 'text-red-700',
+        description: 'Must-have expenses' 
+      },
+      'flexible': { 
+        label: 'Flexible', 
+        color: 'blue', 
+        bgColor: 'bg-blue-100', 
+        textColor: 'text-blue-700',
+        description: 'Can be adjusted if needed' 
+      },
+      'luxury': { 
+        label: 'Luxury', 
+        color: 'purple', 
+        bgColor: 'bg-purple-100', 
+        textColor: 'text-purple-700',
+        description: 'Optional, nice-to-have' 
+      }
+    };
+    
+    return priorities[priority] || priorities['essential'];
+  },
+
+  // Get budget status info
+  getStatusInfo: (progressPercentage, isOverBudget) => {
+    if (isOverBudget) {
+      return {
+        label: 'Over Budget',
+        color: 'red',
+        bgColor: 'bg-red-100',
+        textColor: 'text-red-700',
+        description: 'Budget exceeded'
+      };
+    }
+    
+    if (progressPercentage >= 90) {
+      return {
+        label: 'Near Limit',
+        color: 'yellow',
+        bgColor: 'bg-yellow-100',
+        textColor: 'text-yellow-700',
+        description: 'Close to budget limit'
+      };
+    }
+    
+    if (progressPercentage >= 75) {
+      return {
+        label: 'On Track',
+        color: 'blue',
+        bgColor: 'bg-blue-100',
+        textColor: 'text-blue-700',
+        description: 'Good progress'
+      };
+    }
+    
+    return {
+      label: 'Under Budget',
+      color: 'green',
+      bgColor: 'bg-green-100',
+      textColor: 'text-green-700',
+      description: 'Well within budget'
+    };
+  },
+
+  // Get progress bar color classes
+  getProgressColorClasses: (progressPercentage, isOverBudget) => {
+    if (isOverBudget) return 'from-red-500 to-red-600';
+    if (progressPercentage >= 75) return 'from-red-400 to-red-500';
+    if (progressPercentage >= 50) return 'from-yellow-400 to-orange-500';
+    return 'from-green-400 to-green-500';
+  },
+
+  // Calculate remaining amount
+  calculateRemaining: (amount, spent, rolloverAmount = 0) => {
+    return amount - spent + rolloverAmount;
+  },
+
+  // Calculate progress percentage
+  calculateProgress: (amount, spent) => {
+    if (amount === 0) return 0;
+    return Math.min(100, (spent / amount) * 100);
+  },
+
+  // Check if budget is over limit
+  isOverBudget: (amount, spent) => {
+    return spent > amount;
+  },
+
+  // Calculate budget utilization for multiple budgets
+  calculateTotalUtilization: (budgets) => {
+    if (!Array.isArray(budgets) || budgets.length === 0) {
+      return { totalBudget: 0, totalSpent: 0, totalRemaining: 0, averageProgress: 0 };
+    }
+
+    const totalBudget = budgets.reduce((sum, budget) => sum + budget.amount, 0);
+    const totalSpent = budgets.reduce((sum, budget) => sum + (budget.spent || 0), 0);
+    const totalRemaining = budgets.reduce((sum, budget) => {
+      const remaining = budgetHelpers.calculateRemaining(
+        budget.amount, 
+        budget.spent || 0, 
+        budget.rolloverAmount || 0
+      );
+      return sum + remaining;
+    }, 0);
+
+    const totalProgress = budgets.reduce((sum, budget) => {
+      return sum + budgetHelpers.calculateProgress(budget.amount, budget.spent || 0);
+    }, 0);
+
+    const averageProgress = budgets.length > 0 ? totalProgress / budgets.length : 0;
+
+    return {
+      totalBudget,
+      totalSpent,
+      totalRemaining,
+      averageProgress: Math.round(averageProgress * 100) / 100
+    };
+  },
+
+  // Group budgets by category
+  groupByCategory: (budgets) => {
+    return budgets.reduce((groups, budget) => {
+      const category = budget.category;
+      if (!groups[category]) {
+        groups[category] = [];
+      }
+      groups[category].push(budget);
+      return groups;
+    }, {});
+  },
+
+  // Group budgets by priority
+  groupByPriority: (budgets) => {
+    return budgets.reduce((groups, budget) => {
+      const priority = budget.priority || 'essential';
+      if (!groups[priority]) {
+        groups[priority] = [];
+      }
+      groups[priority].push(budget);
+      return groups;
+    }, {});
+  },
+
+  // Get budgets that need attention (over 75% or over budget)
+  getBudgetsNeedingAttention: (budgets) => {
+    return budgets.filter(budget => {
+      const progress = budgetHelpers.calculateProgress(budget.amount, budget.spent || 0);
+      return progress >= 75 || budgetHelpers.isOverBudget(budget.amount, budget.spent || 0);
+    });
+  },
+
+  // Format budget period
+  formatPeriod: (startDate, endDate) => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    const startMonth = start.toLocaleDateString('en-IN', { month: 'short' });
+    const endMonth = end.toLocaleDateString('en-IN', { month: 'short' });
+    const year = start.getFullYear();
+    
+    if (start.getMonth() === end.getMonth()) {
+      return `${startMonth} ${year}`;
+    }
+    
+    return `${startMonth} - ${endMonth} ${year}`;
+  },
+
+  // Check if expense matches budget criteria
+  doesExpenseMatchBudget: (expense, budget) => {
+    // Check category match
+    if (expense.category?.toLowerCase() !== budget.category?.toLowerCase()) {
+      return false;
+    }
+    
+    // Check date range
+    const expenseDate = new Date(expense.date);
+    const budgetStart = new Date(budget.startDate);
+    const budgetEnd = new Date(budget.endDate);
+    
+    return expenseDate >= budgetStart && expenseDate <= budgetEnd;
+  },
+
+  // Get available budget categories
+  getBudgetCategories: () => {
+    return [
+      { value: 'food', label: 'Food & Dining', icon: '🍽️' },
+      { value: 'transport', label: 'Transportation', icon: '🚗' },
+      { value: 'entertainment', label: 'Entertainment', icon: '🎬' },
+      { value: 'shopping', label: 'Shopping', icon: '🛍️' },
+      { value: 'bills', label: 'Bills & Utilities', icon: '💡' },
+      { value: 'health', label: 'Health & Medical', icon: '🏥' },
+      { value: 'education', label: 'Education', icon: '📚' },
+      { value: 'travel', label: 'Travel', icon: '✈️' },
+      { value: 'others', label: 'Others', icon: '📦' }
+    ];
+  },
+
+  // Get available priority levels
+  getPriorityLevels: () => {
+    return [
+      { value: 'essential', label: 'Essential', description: 'Must-have expenses' },
+      { value: 'flexible', label: 'Flexible', description: 'Can be adjusted if needed' },
+      { value: 'luxury', label: 'Luxury', description: 'Optional, nice-to-have' }
+    ];
+  },
+
+  // Validate budget data
+  validateBudget: (budgetData) => {
+    const errors = [];
+    
+    if (!budgetData.name || budgetData.name.trim().length === 0) {
+      errors.push('Budget name is required');
+    }
+    
+    if (!budgetData.category) {
+      errors.push('Category is required');
+    }
+    
+    if (!budgetData.amount || budgetData.amount <= 0) {
+      errors.push('Budget amount must be positive');
+    }
+    
+    if (!budgetData.startDate) {
+      errors.push('Start date is required');
+    }
+    
+    if (!budgetData.endDate) {
+      errors.push('End date is required');
+    }
+    
+    if (budgetData.startDate && budgetData.endDate) {
+      const start = new Date(budgetData.startDate);
+      const end = new Date(budgetData.endDate);
+      if (start >= end) {
+        errors.push('End date must be after start date');
+      }
+    }
+    
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  }
+};
+
+// Auto-apply expense to budget when expense is created/updated
+export const autoApplyExpenseToBudget = async (expense) => {
+  try {
+    const matchingBudget = await budgetAPI.findBudgetForExpense(expense);
+    
+    if (matchingBudget) {
+      const result = await budgetAPI.applyExpense(matchingBudget._id, expense);
+      console.log('Expense automatically applied to budget:', result);
+      return result;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error auto-applying expense to budget:', error);
+    return null;
   }
 };

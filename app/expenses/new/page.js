@@ -171,8 +171,23 @@ function AddExpenseContent() {
         categoryIcon: categoryIcon,
       });
       
-      // Success - redirect to expenses page
-      router.push('/expenses?success=expense-added');
+      // Check if budget was updated and show alerts
+      let redirectUrl = '/expenses?success=expense-added';
+      
+      if (result.budgetUpdate) {
+        redirectUrl += '&budget-updated=true';
+        redirectUrl += `&budget-category=${encodeURIComponent(result.budgetUpdate.category)}`;
+        redirectUrl += `&budget-spent=${result.budgetUpdate.spent}`;
+        redirectUrl += `&budget-remaining=${result.budgetUpdate.remaining}`;
+        redirectUrl += `&budget-progress=${result.budgetUpdate.progressPercentage.toFixed(1)}`;
+      }
+      
+      if (result.alerts && result.alerts.length > 0) {
+        redirectUrl += '&alerts=' + encodeURIComponent(JSON.stringify(result.alerts));
+      }
+      
+      // Success - redirect to expenses page with budget update info
+      router.push(redirectUrl);
     } catch (error) {
       console.error('Error adding expense:', error);
       setErrors({ submit: error.message });

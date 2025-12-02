@@ -1,25 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "../../../lib/db";
 import Expense from "../../../lib/models/Expense";
+import Budget from "../../../lib/models/Budget";
 import mongoose from "mongoose";
+import jwt from 'jsonwebtoken';
 
-// Helper function to get user from request headers (your existing auth system)
-function getUserFromRequest(request) {
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return null;
-  }
-  
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+
+// Helper function to verify JWT token
+const verifyToken = (request) => {
   try {
-    // Your token format: "Bearer {userId}:{email}"
-    const token = authHeader.replace('Bearer ', '');
-    const [userId, email] = token.split(':');
-    return { userId, email };
+    const token = request.headers.get('authorization')?.replace('Bearer ', '');
+    if (!token) {
+      throw new Error('No token provided');
+    }
+    const decoded = jwt.verify(token, JWT_SECRET);
+    return decoded;
   } catch (error) {
-    console.error('Error parsing auth token:', error);
-    return null;
+    throw new Error('Invalid token');
   }
-}
+};
 
 // Helper function to validate ObjectId
 function isValidObjectId(id) {
@@ -31,13 +31,8 @@ export async function GET(request, { params }) {
   try {
     await connectDB();
     
-    const user = getUserFromRequest(request);
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized. Please login to continue.' },
-        { status: 401 }
-      );
-    }
+    const decoded = verifyToken(request);
+    const user = { userId: decoded.userId, email: decoded.email };
     
     const { id } = params;
     
@@ -75,13 +70,8 @@ export async function PATCH(request, { params }) {
   try {
     await connectDB();
     
-    const user = getUserFromRequest(request);
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized. Please login to continue.' },
-        { status: 401 }
-      );
-    }
+    const decoded = verifyToken(request);
+    const user = { userId: decoded.userId, email: decoded.email };
     
     const { id } = params;
     
@@ -202,18 +192,66 @@ export async function PATCH(request, { params }) {
       updateData.currency = body.currency;
     }
     
+    // Handle budget synchronization for updates
+    let budgetUpdates = [];
+    
+    try {
+      // Find old budget and reverse the expense
+      const oldBudget = await Budget.findForExpense(user.userId, existingExpense.category, existingExpense.date);
+      if (oldBudget) {
+        await oldBudget.removeExpense(existingExpense.amount);
+        budgetUpdates.push({
+          budgetId: oldBudget._id,
+          category: oldBudget.category,
+          action: 'removed',
+          amount: existingExpense.amount,
+          newSpent: oldBudget.spent,
+          remaining: oldBudget.remaining
+        });
+      }
+    } catch (budgetError) {
+      console.error('Error removing from old budget:', budgetError);
+    }
+    
     const updatedExpense = await Expense.findOneAndUpdate(
       { _id: id, userId: user.userId },
       updateData,
       { new: true, runValidators: true }
     );
     
+    try {
+      // Find new budget and apply the updated expense
+      const newBudget = await Budget.findForExpense(user.userId, updatedExpense.category, updatedExpense.date);
+      if (newBudget) {
+        await newBudget.addExpense(updatedExpense.amount);
+        budgetUpdates.push({
+          budgetId: newBudget._id,
+          category: newBudget.category,
+          action: 'added',
+          amount: updatedExpense.amount,
+          newSpent: newBudget.spent,
+          remaining: newBudget.remaining,
+          status: newBudget.calculateStatus()
+        });
+      }
+    } catch (budgetError) {
+      console.error('Error adding to new budget:', budgetError);
+    }
+    
     return NextResponse.json({
       message: 'Expense updated successfully',
-      expense: updatedExpense
+      expense: updatedExpense,
+      budgetUpdates
     });
   } catch (error) {
     console.error('Error updating expense:', error);
+    
+    if (error.message === 'Invalid token' || error.message === 'No token provided') {
+      return NextResponse.json(
+        { error: 'Unauthorized. Please login to continue.' },
+        { status: 401 }
+      );
+    }
     
     // Handle Mongoose validation errors
     if (error.name === 'ValidationError') {
@@ -239,13 +277,8 @@ export async function DELETE(request, { params }) {
   try {
     await connectDB();
     
-    const user = getUserFromRequest(request);
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized. Please login to continue.' },
-        { status: 401 }
-      );
-    }
+    const decoded = verifyToken(request);
+    const user = { userId: decoded.userId, email: decoded.email };
     
     const { id } = params;
     
@@ -256,16 +289,43 @@ export async function DELETE(request, { params }) {
       );
     }
     
+    // Get expense data before deletion
+    const expense = await Expense.findOne({
+      _id: id,
+      userId: user.userId
+    });
+    
+    if (!expense) {
+      return NextResponse.json(
+        { error: 'Expense not found' },
+        { status: 404 }
+      );
+    }
+    
+    // Delete the expense
     const deletedExpense = await Expense.findOneAndDelete({
       _id: id,
       userId: user.userId
     });
     
-    if (!deletedExpense) {
-      return NextResponse.json(
-        { error: 'Expense not found' },
-        { status: 404 }
-      );
+    // Update related budget
+    let budgetUpdate = null;
+    
+    try {
+      const relatedBudget = await Budget.findForExpense(user.userId, expense.category, expense.date);
+      if (relatedBudget) {
+        await relatedBudget.removeExpense(expense.amount);
+        budgetUpdate = {
+          budgetId: relatedBudget._id,
+          category: relatedBudget.category,
+          amount: expense.amount,
+          newSpent: relatedBudget.spent,
+          remaining: relatedBudget.remaining,
+          status: relatedBudget.calculateStatus()
+        };
+      }
+    } catch (budgetError) {
+      console.error('Error updating budget after deletion:', budgetError);
     }
     
     return NextResponse.json({
@@ -274,10 +334,19 @@ export async function DELETE(request, { params }) {
         id: deletedExpense._id,
         title: deletedExpense.title,
         amount: deletedExpense.amount
-      }
+      },
+      budgetUpdate
     });
   } catch (error) {
     console.error('Error deleting expense:', error);
+    
+    if (error.message === 'Invalid token' || error.message === 'No token provided') {
+      return NextResponse.json(
+        { error: 'Unauthorized. Please login to continue.' },
+        { status: 401 }
+      );
+    }
+    
     return NextResponse.json(
       { error: 'Internal server error. Please try again.' },
       { status: 500 }
