@@ -34,9 +34,16 @@ export async function GET(req) {
       return Response.json({ error: 'User not found' }, { status: 404 });
     }
 
-    return Response.json({ user: userData }, { status: 200 });
+    return Response.json({ 
+      success: true, 
+      user: userData,
+      completionPercentage: userData.completionPercentage
+    }, { status: 200 });
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ 
+      success: false, 
+      error: error.message 
+    }, { status: 500 });
   }
 }
 
@@ -46,35 +53,108 @@ export async function PUT(req) {
     
     const user = getUserFromRequest(req);
     if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+      return Response.json({ 
+        success: false, 
+        error: 'Unauthorized' 
+      }, { status: 401 });
     }
 
-    const { name, email } = await req.json();
+    const {
+      name,
+      phone,
+      dateOfBirth,
+      occupation,
+      address,
+      monthlyIncome,
+      profileImage,
+      currency,
+      timezone
+    } = await req.json();
     
-    if (!name || !email) {
-      return Response.json({ error: 'Name and email are required' }, { status: 400 });
+    // Validate required fields
+    if (!name || name.trim().length === 0) {
+      return Response.json({ 
+        success: false, 
+        error: 'Name is required' 
+      }, { status: 400 });
     }
 
-    // Check if email is already taken by another user
-    if (email !== user.email) {
-      const existingUser = await User.findOne({ email, _id: { $ne: user.userId } });
-      if (existingUser) {
-        return Response.json({ error: 'Email already taken' }, { status: 400 });
-      }
+    // Validate phone number format if provided
+    if (phone && !/^[+]?[1-9][\d\s\-()]{7,15}$/.test(phone)) {
+      return Response.json({ 
+        success: false, 
+        error: 'Please enter a valid phone number' 
+      }, { status: 400 });
     }
+
+    // Validate date of birth if provided
+    if (dateOfBirth && new Date(dateOfBirth) >= new Date()) {
+      return Response.json({ 
+        success: false, 
+        error: 'Date of birth must be in the past' 
+      }, { status: 400 });
+    }
+
+    // Validate monthly income if provided
+    if (monthlyIncome !== undefined && monthlyIncome < 0) {
+      return Response.json({ 
+        success: false, 
+        error: 'Monthly income cannot be negative' 
+      }, { status: 400 });
+    }
+
+    // Prepare update object
+    const updateData = {
+      name: name.trim(),
+      ...(phone && { phone }),
+      ...(dateOfBirth && { dateOfBirth }),
+      ...(occupation && { occupation: occupation.trim() }),
+      ...(address && { address }),
+      ...(monthlyIncome !== undefined && { monthlyIncome }),
+      ...(profileImage && { profileImage }),
+      ...(currency && { currency }),
+      ...(timezone && { timezone })
+    };
 
     const updatedUser = await User.findByIdAndUpdate(
       user.userId,
+      updateData,
       { 
-        name, 
-        email,
-        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=6366f1&color=fff`
-      },
-      { new: true, select: '-password' }
+        new: true, 
+        runValidators: true,
+        select: '-password'
+      }
     );
 
-    return Response.json({ user: updatedUser }, { status: 200 });
+    if (!updatedUser) {
+      return Response.json({ 
+        success: false, 
+        error: 'User not found' 
+      }, { status: 404 });
+    }
+
+    return Response.json({ 
+      success: true, 
+      user: updatedUser,
+      completionPercentage: updatedUser.completionPercentage,
+      message: 'Profile updated successfully'
+    }, { status: 200 });
+
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error('Profile update error:', error);
+    
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.values(error.errors).map(err => err.message);
+      return Response.json({ 
+        success: false, 
+        error: validationErrors[0] || 'Validation error'
+      }, { status: 400 });
+    }
+
+    return Response.json({ 
+      success: false, 
+      error: 'Internal server error' 
+    }, { status: 500 });
   }
 }
